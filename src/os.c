@@ -3,6 +3,7 @@
 #include "types.h"
 #include "cpu.h"
 #include "spin_lock.h"
+#include "bios.h"
 
 // 2048  size: 0x800  2k
 gdt_table_t
@@ -31,6 +32,11 @@ page_dir[1024] OS_ALIGN(4096) = {0};
 // 4k
 page_table_t
 page_table[1024] OS_ALIGN(4096) = {0};
+
+
+// boot_info_t boot_info = {1};
+
+// SMAP_entry_t smap_entry = {1,1,1,1,1,1};
 
 /*
 #define MAP_ADDR 0x80000000
@@ -136,4 +142,8 @@ void os_init() {
 
     gdt_table[5].base_l = (uint16_t)(uint32_t)task0_tss;
     gdt_table[6].base_l = (uint16_t)(uint32_t)task1_tss;
+
+    e820map_t info;
+    e820map_t *et = (e820map_t *)(0x1000);
+    info = *et;
 }

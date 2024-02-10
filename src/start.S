@@ -25,11 +25,14 @@ read_after_512:
     int $0x13    # bios interupt
     jc read_after_512
 
+    call detect_mem
+
     cli
     lgdt (gdt_desc)
     lidt (idt_desc)
     mov $1, %ax
     lmsw %ax
+
     jmp $KERNEL_CODE_SEG, $start_32
     
     # 510
@@ -39,6 +42,41 @@ read_after_512:
 # --------------------------------------- #
 # --------------------------------------- #
 # --------------------------------------- #
+
+
+.text
+detect_mem:
+    push %eax
+    push %ebx
+    push %ecx
+    push %edx
+    push %edi
+
+    movl $0, 0x1000
+    xorl %ebx, %ebx
+    movw $0x1004, %di
+start_probe:
+    movl $0xE820, %eax   
+    movl $20, %ecx
+    movl $0x534D4150, %edx
+    int $0x15
+    jnc cont
+    movw $12345, 0x1000
+    jmp finish_probe
+cont:
+    addw $20, %di
+    incl 0x1000
+    cmpl $0, %ebx
+    jnz start_probe
+
+finish_probe:
+    pop %edi
+    pop %edx
+    pop %ecx
+    pop %ebx
+    pop %eax
+ret
+
 
 
 .code32
@@ -82,7 +120,9 @@ start_32:
     mov %ax, %gs
     mov %ax, %fs
     mov $0x7c00, %esp  # set stack pointer
+    
     call os_init
+    
     # set cr3
     mov $page_dir, %eax
     mov %eax, %cr3
