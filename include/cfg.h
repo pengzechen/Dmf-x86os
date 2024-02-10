@@ -12,4 +12,9 @@
 
 #define OS_ALIGN(n) __attribute__((aligned(n)))
 
+// 00009000 g     O .data	00000800 gdt_table
+// 0000a000 g     O .data	00001000 page_dir
+// 0000b000 g     O .bss	00000800 idt_table
+// 0000c000 g     O .bss	00001000 page_table
+
 #endif // CFG_H

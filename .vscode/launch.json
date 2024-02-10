@@ -8,7 +8,7 @@
             "name": "(gdb) 启动",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceRoot}/build/os.elf",
+            "program": "${workspaceRoot}/build/basic_set/os.elf",
             "args": [],
             "stopAtEntry": false,
             "cwd": "${workspaceRoot}",
@@ -46,7 +46,12 @@
             "postRemoteConnectCommands": [
                 {
                     "description": "加载boot符号文件",
-                    "text": "-file-symbol-file ./build/os.elf",
+                    "text": "-file-symbol-file ./build/basic_set/os.elf",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "加载kernel符号文件",
+                    "text": "add-symbol-file ./build/kernel/kernel.elf 0x100000",
                     "ignoreFailures": false
                 },
                 {

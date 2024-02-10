@@ -20,7 +20,8 @@ _start:
 read_after_512:
     mov $0x7e00, %bx
     mov $0x2,    %cx
-    mov $0x240,  %ax
+	mov $0x2, %ah		# ah: 0x2读磁盘命令
+	mov $64, %al		# al: 读取的扇区数量, 必须小于128，暂设置成32KB
     mov $0x80,   %dx
     int $0x13    # bios interupt
     jc read_after_512
@@ -93,24 +94,6 @@ idt_desc:
     .word (256*8) - 1
     .long idt_table
 
-# --------------------------------------- #
-# --------------------------------------- #
-timer_int:
-    // push %ds
-
-    pusha
-    mov $0x20, %al
-    outb %al, $0x20
-
-    // mov $KERNEL_DATA_SEG, %ax
-    // mov %ax, %ds
-
-    call task_sched
-
-    popa
-    // pop %ds
-    iret
-
 
 start_32:
     mov $KERNEL_DATA_SEG, %ax
@@ -120,8 +103,6 @@ start_32:
     mov %ax, %gs
     mov %ax, %fs
     mov $0x7c00, %esp  # set stack pointer
-    
-    call os_init
     
     # set cr3
     mov $page_dir, %eax
@@ -135,22 +116,6 @@ start_32:
     orl $(1 << 31), %eax
     mov %eax, %cr0
 
-    mov $TASK_0_TSS, %ax
-    ltr %ax
+    jmp os_init
 
-    
-    push $APP_DATA_SEG             # data segment
-    push $task_0_stack_dpl3 + 4096 # stack pointer
-    push $0x202                    # eflags
-    push $APP_CODE_SEG             # code segment
-    push $to_dpl_3
-    iret
 
-to_dpl_3:
-    mov $APP_DATA_SEG, %ax
-    mov %eax, %ds
-    mov %eax, %es
-    mov %eax, %ss
-    mov %eax, %gs
-    mov %eax, %fs
-    jmp task_0_entry

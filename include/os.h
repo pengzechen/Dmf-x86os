@@ -16,6 +16,14 @@ typedef struct _gdt_table_t {
 
 } gdt_table_t OS_ALIGN(8);
 
+// struct _segment_desc_t {
+//     uint16_t            limit15_0;
+//     uint16_t            base15_0;
+//     uint8_t             base23_16;
+//     uint16_t            attr;
+//     uint8_t             base31_24;
+// };
+
 /* -------------- irq ---------------------------*/
 
 // 大小为8字节
