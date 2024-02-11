@@ -36,11 +36,11 @@
                     "ignoreFailures": true
                 },
                 // 设置体系结构: i8086，方便以16位方式进行反汇编
-                {
-                    "description": "设置体系结构",
-                    "text": "-gdb-set arch i8086",
-                    "ignoreFailures": true
-                }
+                // {
+                //     "description": "设置体系结构",
+                //     "text": "-gdb-set arch i8086",
+                //     "ignoreFailures": true
+                // }
             ],
             // gdb连接后的设置
             "postRemoteConnectCommands": [

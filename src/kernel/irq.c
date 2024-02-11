@@ -20,9 +20,10 @@ void irq_init() {
     outb(0x1, 0xA1);
 
     outb(0xfe, 0x21);  
+    // outb(0xff, 0x21);
     outb(0xff, 0xA1);  
 
-    int tmo = 1193180 / 50; 
+    int tmo = 1193180 / 100; 
     outb(0x36, 0x43);
     outb((uint8_t)tmo, 0x40);
     outb(tmo >> 8, 0x40);

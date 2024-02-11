@@ -9,7 +9,9 @@ INCLUDE = -I ./include
 
 CFLAGS = -g -c -O0 -m32 -fno-pie -fno-stack-protector -nostdlib -nostdinc
 
-basic: src/basic_set/os.c src/basic_set/start.S 
+basic: src/basic_set/os.c src/basic_set/start.S
+	rm -f build/disk.img
+	fsutil file createnew build/disk.img 52428800
 
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/basic_set/start.S  -o $(BUILD_DIR)/start.o
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/basic_set/os.c     -o $(BUILD_DIR)/os.o
@@ -20,8 +22,7 @@ basic: src/basic_set/os.c src/basic_set/start.S
 	$(TOOL_PREFIX)objcopy -O binary $(BUILD_DIR)/os.elf $(BUILD_DIR)/os.bin
 	$(TOOL_PREFIX)readelf -a $(BUILD_DIR)/os.elf > $(BUILD_DIR)/os_elf.txt
 
-	dd if=$(BUILD_DIR)/os.bin           of=build/disk.img conv=notrunc
-	
+	dd if=$(BUILD_DIR)/os.bin   of=build/disk.img bs=512  conv=notrunc
 
 
 
@@ -46,15 +47,13 @@ kernel: src/kernel/init_as.S src/kernel/irq_as.S src/kernel/base.c \
 	$(TOOL_PREFIX)objcopy -O binary $(KERNEL_BUILD_DIR)/kernel.elf $(KERNEL_BUILD_DIR)/kernel.bin
 	$(TOOL_PREFIX)readelf -a $(KERNEL_BUILD_DIR)/kernel.elf > $(KERNEL_BUILD_DIR)/kernel_elf.txt
 
-	dd if=$(KERNEL_BUILD_DIR)/kernel.bin   of=build/disk.img conv=notrunc  seek=100
-
-
-
+	dd if=$(KERNEL_BUILD_DIR)/kernel.bin   of=build/disk.img bs=512  conv=notrunc  seek=100
 
 
 
 clean:
 	rm -f $(BUILD_DIR)/*.elf $(BUILD_DIR)/*.o $(BUILD_DIR)/*.txt $(BUILD_DIR)/*.bin
 	rm -f $(KERNEL_BUILD_DIR)/*.elf $(KERNEL_BUILD_DIR)/*.o $(KERNEL_BUILD_DIR)/*.txt $(KERNEL_BUILD_DIR)/*.bin
+	
 
 	# fsutil file createnew disk.img 52428800

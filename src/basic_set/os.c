@@ -16,7 +16,7 @@ gdt_table[256] = {
     {0xffff, 0x0000, 0xfa00, 0x00cf},    // task 0 code 24
     {0xffff, 0x0000, 0xf300, 0x00cf},    // task 0 data 32
 
-    {0x86,   0x0000, 0xe900, 0x0000},  //task 0 tss  TASK_0_TSS
+    {0x86,   0x0000, 0xe900, 0x0000},    // task 0 tss  TASK_0_TSS
     {0x86,   0x0000, 0xe900, 0x0000},
 
 };  
@@ -92,7 +92,6 @@ static void read_disk(int sector, int sector_count, uint8_t * buf) {
 
 
 void os_init() {
-    read_disk(100, 500, (uint8_t *)0x100000);
+    read_disk(100, 700, (uint8_t *)0x100000);
     // uint32_t kernel_entry = reload_elf_file((uint8_t *)0x100000);
-    ((void (*)())0x100000)();
 }

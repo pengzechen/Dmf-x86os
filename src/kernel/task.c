@@ -37,7 +37,7 @@ uint32_t task0_tss[] = {
     // prelink, esp0,ss0, esp1,ss1, esp2,ss2
     0, (uint32_t)task_0_stack_dpl1+4096, KERNEL_DATA_SEG, 0x0, 0x0, 0x0, 0x0,
     // cr3, eip, eflags,  eax, ecx, edx, ebx, 
-    (uint32_t)(0x0000A000), (uint32_t)task_0_entry, 0x202, 0xa, 0xc, 0xd, 0xb,
+    (uint32_t)(0xA000), (uint32_t)task_0_entry, 0x202, 0xa, 0xc, 0xd, 0xb,
     // esp, ebp, esi, edi,
     (uint32_t)task_0_stack_dpl3+4096, 0x1, 0x2, 0x3,
     // es, cs, ss, ds, fs, gs, ldt, iomap
@@ -48,7 +48,7 @@ uint32_t task1_tss[] = {
     // prelink, esp0,ss0, esp1,ss1, esp2,ss2
     0, (uint32_t)task_1_stack_dpl1+4096, KERNEL_DATA_SEG, 0x0, 0x0, 0x0, 0x0,
     // cr3, eip, eflags,  eax, ecx, edx, ebx, 
-    (uint32_t)(0x0000A000), (uint32_t)task_1_entry, 0x202, 0xa, 0xc, 0xd, 0xb, 
+    (uint32_t)(0xA000), (uint32_t)task_1_entry, 0x202, 0xa, 0xc, 0xd, 0xb, 
     // esp, ebp, esi, edi,
     (uint32_t)task_1_stack_dpl3+4096, 0x1, 0x2, 0x3,
     // es, cs, ss, ds, fs, gs, ldt, iomap

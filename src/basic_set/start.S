@@ -41,9 +41,6 @@ read_after_512:
     .byte 0x55, 0xaa
 # --------------------------------------- #
 # --------------------------------------- #
-# --------------------------------------- #
-# --------------------------------------- #
-
 
 .text
 detect_mem:
@@ -79,12 +76,8 @@ finish_probe:
 ret
 
 
-
 .code32
 .text
-.global timer_int
-.global task_0_entry
-.global task_1_entry
 
 gdt_desc:
     .word (256*8) - 1
@@ -116,6 +109,7 @@ start_32:
     orl $(1 << 31), %eax
     mov %eax, %cr0
 
-    jmp os_init
+    call os_init
+    jmp $KERNEL_CODE_SEG, $0x100000
 
 
