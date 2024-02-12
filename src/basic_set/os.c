@@ -1,5 +1,5 @@
 
-#include "os.h"
+#include "desc.h"
 #include "types.h"
 #include "cpu.h"
 #include "bios.h"
@@ -20,7 +20,7 @@ gdt_table[256] = {
 };  
 
 // 2048 size: 0x800  2k
-idt_table_t
+idt_entry_t
 idt_table[256] = {0};
 
 // 4k

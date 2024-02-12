@@ -1,11 +1,35 @@
 
 #include "types.h"
-#include "os.h"
+#include "desc.h"
 #include "cpu.h"
 
 extern void timer_int();
 
-extern idt_table_t * idt_table;
+extern idt_entry_t * idt_table;
+
+void set_idt_entry(int vec, void *addr, uint16_t selector, int dpl)
+{
+    idt_entry_t *e = &idt_table[vec];
+    e->offset0 = (unsigned long)addr;
+    e->selector = selector;
+    e->ist = 0;
+    e->type = 0xE;
+    e->dpl = dpl;
+    e->p = 1;
+    e->offset1 = (unsigned long)addr >> 16;
+}
+
+void set_idt_dpl(int vec, uint16_t dpl)
+{
+    idt_entry_t *e = &idt_table[vec];
+    e->dpl = dpl;
+}
+
+void set_idt_sel(int vec, uint16_t sel)
+{
+    idt_entry_t *e = &idt_table[vec];
+    e->selector = sel;
+}
 
 void irq_init() {
 
@@ -27,11 +51,8 @@ void irq_init() {
     outb((uint8_t)tmo, 0x40);
     outb(tmo >> 8, 0x40);
 
-    idt_table[0x20].offset_l = (uint32_t)timer_int & 0xffff;
-    idt_table[0x20].offset_h = ((uint32_t)timer_int >> 16) ;//& 0xffff;
-    idt_table[0x20].selector = KERNEL_CODE_SEG;
-    idt_table[0x20].ist = 0;
-    idt_table[0x20].p = 1;
-    idt_table[0x20].type = 0xE;
-
+    set_idt_entry(0x20, (void*)timer_int, KERNEL_CODE_SEG, 0);
 }
+
+
+

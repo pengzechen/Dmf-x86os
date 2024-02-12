@@ -1,6 +1,6 @@
 
 #include "types.h"
-#include "os.h"
+#include "desc.h"
 #include "bios.h"
 
 extern page_table_t * page_table;

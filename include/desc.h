@@ -20,9 +20,9 @@ typedef struct _gdt_table_t {
 /* -------------- irq ---------------------------*/
 
 // 大小为8字节
-typedef struct _idt_table_t {
+typedef struct _idt_entry_t {
 
-    uint16_t offset_l;
+    uint16_t offset0;
     uint16_t selector;
 
     unsigned short ist : 3;
@@ -35,9 +35,9 @@ typedef struct _idt_table_t {
     /* 1 存在*/
     unsigned short p : 1;
 
-    uint16_t offset_h;
+    uint16_t offset1;
 
-} idt_table_t OS_ALIGN(8);
+} idt_entry_t OS_ALIGN(8);
 
 
 /* -------------  Page --------------------------*/
