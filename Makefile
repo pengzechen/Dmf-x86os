@@ -27,7 +27,8 @@ basic: src/basic_set/os.c src/basic_set/start.S
 
 
 kernel: src/kernel/init_as.S src/kernel/irq_as.S src/kernel/base.c \
-	   src/kernel/irq.c src/kernel/mem.c src/kernel/task.c src/kernel/init.c
+	   src/kernel/irq.c src/kernel/mem.c src/kernel/task.c src/kernel/init.c \
+	   src/kernel/io.c src/kernel/string.c
 
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/init_as.S     -o $(KERNEL_BUILD_DIR)/init_as.o
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/irq_as.S     -o $(KERNEL_BUILD_DIR)/irq_as.o
@@ -36,11 +37,15 @@ kernel: src/kernel/init_as.S src/kernel/irq_as.S src/kernel/base.c \
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/mem.c     -o $(KERNEL_BUILD_DIR)/mem.o
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/task.c     -o $(KERNEL_BUILD_DIR)/task.o
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/init.c     -o $(KERNEL_BUILD_DIR)/init.o
+	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/io.c        -o $(KERNEL_BUILD_DIR)/io.o
+	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/string.c     -o $(KERNEL_BUILD_DIR)/string.o
+
 
 
 	$(TOOL_PREFIX)ld -m elf_i386 -T src/kernel/kernel.lds   $(KERNEL_BUILD_DIR)/init_as.o   	\
 		$(KERNEL_BUILD_DIR)/irq_as.o $(KERNEL_BUILD_DIR)/base.o $(KERNEL_BUILD_DIR)/irq.o   	\
 		$(KERNEL_BUILD_DIR)/mem.o $(KERNEL_BUILD_DIR)/task.o $(KERNEL_BUILD_DIR)/init.o			\
+		$(KERNEL_BUILD_DIR)/io.o $(KERNEL_BUILD_DIR)/string.o                                   \
 		-o $(KERNEL_BUILD_DIR)/kernel.elf
 	
 	$(TOOL_PREFIX)objdump -x -d -S $(KERNEL_BUILD_DIR)/kernel.elf > $(KERNEL_BUILD_DIR)/kernel_dis.txt
