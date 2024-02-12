@@ -55,16 +55,21 @@ uint32_t task1_tss[] = {
 };
 
 void task_init () {
-    gdt_table[5].limit_l = 0x86; //task 0 tss  TASK_0_TSS
-    gdt_table[5].base_l = (uint32_t)task0_tss & 0xffff;  // 低16
 
-    gdt_table[5].basehl_attr = 0xe900 | ((uint32_t)task0_tss >> 16) & 0xff;
-    gdt_table[5].base_limit =  ((uint32_t)task0_tss >> 24) & 0xff;
+    gdt_table[5].limit_low = 0x86; //task 0 tss  TASK_0_TSS
+    gdt_table[5].base_low = (uint32_t)task0_tss & 0xffff;  // 低16
+
+    gdt_table[5].base_middle = ((uint32_t)task0_tss >> 16) & 0xff;
+    gdt_table[5].access = 0xe9;
+    gdt_table[5].granularity = 0x0; 
+    gdt_table[5].base_high =  ((uint32_t)task0_tss >> 24) & 0xff;
     
 
-    gdt_table[6].limit_l = 0x86; //task 0 tss  TASK_0_TSS
-    gdt_table[6].base_l = (uint32_t)task1_tss & 0xffff;  // 低16
+    gdt_table[6].limit_low = 0x86; //task 0 tss  TASK_0_TSS
+    gdt_table[6].base_low = (uint32_t)task1_tss & 0xffff;  // 低16
 
-    gdt_table[6].basehl_attr = 0xe900 | ((uint32_t)task1_tss >> 16) & 0xff;
-    gdt_table[6].base_limit = ((uint32_t)task1_tss >> 24) & 0xff;
+    gdt_table[6].base_middle = ((uint32_t)task1_tss >> 16) & 0xff;
+    gdt_table[6].access = 0xe9;
+    gdt_table[6].granularity = 0x0; 
+    gdt_table[6].base_high = ((uint32_t)task1_tss >> 24) & 0xff;
 }

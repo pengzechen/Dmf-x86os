@@ -8,21 +8,14 @@
 
 // 大小为8字节
 typedef struct _gdt_table_t {
-
-    uint16_t limit_l;
-    uint16_t base_l;
-    uint16_t basehl_attr;
-    uint16_t base_limit;
-
+	uint16_t limit_low;
+	uint16_t base_low;
+	uint8_t base_middle;
+	uint8_t access;
+	uint8_t granularity;
+	uint8_t base_high;
 } gdt_table_t OS_ALIGN(8);
 
-// struct _segment_desc_t {
-//     uint16_t            limit15_0;
-//     uint16_t            base15_0;
-//     uint8_t             base23_16;
-//     uint16_t            attr;
-//     uint8_t             base31_24;
-// };
 
 /* -------------- irq ---------------------------*/
 
@@ -31,7 +24,17 @@ typedef struct _idt_table_t {
 
     uint16_t offset_l;
     uint16_t selector;
-    uint16_t attr;
+
+    unsigned short ist : 3;
+    unsigned short : 5;
+    /* idt类型 */
+    unsigned short type : 4;
+    unsigned short : 1;
+    /* 特权级 */
+    unsigned short dpl : 2;
+    /* 1 存在*/
+    unsigned short p : 1;
+
     uint16_t offset_h;
 
 } idt_table_t OS_ALIGN(8);

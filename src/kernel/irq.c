@@ -30,7 +30,8 @@ void irq_init() {
     idt_table[0x20].offset_l = (uint32_t)timer_int & 0xffff;
     idt_table[0x20].offset_h = ((uint32_t)timer_int >> 16) ;//& 0xffff;
     idt_table[0x20].selector = KERNEL_CODE_SEG;
-    // idt_table[0x20].attr = 0x8e00;
-    idt_table[0x20].attr = GATE_P_PRESENT | GATE_DPL0 | GATE_TYPE_IDT;
+    idt_table[0x20].ist = 0;
+    idt_table[0x20].p = 1;
+    idt_table[0x20].type = 0xE;
 
 }

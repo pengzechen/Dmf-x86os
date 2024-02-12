@@ -43,5 +43,12 @@
 #define GATE_TYPE_IDT       (0xE << 8)
 
 
+#define BITS_PER_LONG 32
+#define BIT(nr)			(1UL << (nr))
+#define BIT_MASK(nr)		(1UL << ((nr) % BITS_PER_LONG))
+// 生成一个指定范围内所有位均为 1 的位掩码
+#define GENMASK(h, l) \
+	(((~0UL) << (l)) & (~0UL >> (BITS_PER_LONG - 1 - (h))))
+
 
 #endif // CFG_H
