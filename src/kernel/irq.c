@@ -9,19 +9,18 @@ extern idt_table_t * idt_table;
 
 void irq_init() {
 
-    outb(0x11, 0x20);
-    outb(0x11, 0xA0);
-    outb(0x20, 0x21);
-
-    outb(0x28, 0xA1);
-    outb(1 << 2, 0x21);
-    outb(2, 0xA1);
-    outb(0x1, 0x21);
-    outb(0x1, 0xA1);
-
-    outb(0xfe, 0x21);  
-    // outb(0xff, 0x21);
-    outb(0xff, 0xA1);  
+    outb(PIC0_ICW1, PIC_ICW1_ALWAYS_1 | PIC_ICW1_ICW4);
+    outb(PIC0_ICW2, IRQ_PIC_START);
+    outb(PIC0_ICW3, 1 << 2);
+    outb(PIC0_ICW4, PIC_ICW4_8086);
+    
+    outb(PIC1_ICW1, PIC_ICW1_ALWAYS_1 | PIC_ICW1_ICW4);
+    outb(PIC1_ICW2, IRQ_PIC_START + 8);
+    outb(PIC1_ICW3, 2);
+    outb(PIC1_ICW4, PIC_ICW4_8086);
+    
+    outb(PIC0_IMR, 0xFE);
+    outb(PIC1_IMR, 0xFF);
 
     int tmo = 1193180 / 100; 
     outb(0x36, 0x43);
@@ -29,8 +28,9 @@ void irq_init() {
     outb(tmo >> 8, 0x40);
 
     idt_table[0x20].offset_l = (uint32_t)timer_int & 0xffff;
-    idt_table[0x20].offset_h = (uint32_t)timer_int >> 16;
+    idt_table[0x20].offset_h = ((uint32_t)timer_int >> 16) ;//& 0xffff;
     idt_table[0x20].selector = KERNEL_CODE_SEG;
-    idt_table[0x20].attr = 0x8e00;
+    // idt_table[0x20].attr = 0x8e00;
+    idt_table[0x20].attr = GATE_P_PRESENT | GATE_DPL0 | GATE_TYPE_IDT;
 
 }

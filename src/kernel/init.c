@@ -1,5 +1,6 @@
 
 #include "cfg.h"
+#include "types.h"
 
 extern void irq_init();
 extern void mem_init();

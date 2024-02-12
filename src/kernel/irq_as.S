@@ -5,8 +5,8 @@
 
 timer_int:
     push %ds
-
     pusha
+    
     mov $0x20, %al
     outb %al, $0x20
 

@@ -5,7 +5,10 @@
 
 _start:
     call init
+    jmp to_task_0
 
+
+to_task_0:
     mov $TASK_0_TSS, %ax
     ltr %ax
 /*
@@ -23,8 +26,8 @@ push [eip]
 
     push $APP_DATA_SEG             # data segment
     push $task_0_stack_dpl3 + 4096 # stack pointer
-    push $0 // $0x202                    # eflags
-    # push $0x202                    # eflags
+    # push $0 // $0x202                    # eflags
+    push $0x202                    # eflags
     push $APP_CODE_SEG             # code segment
     push $to_dpl_3
     iret
