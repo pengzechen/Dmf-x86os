@@ -16,8 +16,8 @@ gdt_table[256] = {
     {0xffff, 0x0000, 0xfa00, 0x00cf},    // task 0 code 24
     {0xffff, 0x0000, 0xf300, 0x00cf},    // task 0 data 32
 
-    {0x86,   0x0000, 0xe900, 0x0000},    // task 0 tss  TASK_0_TSS
-    {0x86,   0x0000, 0xe900, 0x0000},
+    // {0x86,   0x0000, 0xe900, 0x0000},    // task 0 tss  TASK_0_TSS
+    // {0x86,   0x0000, 0xe900, 0x0000},
 
 };  
 
@@ -34,7 +34,6 @@ page_dir[1024] OS_ALIGN(4096) = {
 // 4k
 page_table_t
 page_table[1024] OS_ALIGN(4096) = {0};
-
 
 static uint32_t reload_elf_file (uint8_t * file_buffer) {
     Elf32_Ehdr * elf_hdr = (Elf32_Ehdr *)file_buffer;
@@ -90,8 +89,6 @@ static void read_disk(int sector, int sector_count, uint8_t * buf) {
 	}
 }
 
-
 void os_init() {
-    read_disk(100, 700, (uint8_t *)0x100000);
-    // uint32_t kernel_entry = reload_elf_file((uint8_t *)0x100000);
+    read_disk(100, 500, (uint8_t *)0x100000);
 }
