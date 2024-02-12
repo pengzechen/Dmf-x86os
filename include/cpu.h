@@ -19,5 +19,10 @@ static inline uint16_t inw(uint16_t  port) {
 	return rv;
 }
 
+static inline void ljmp (uint32_t task_tss) {
+	uint32_t addr[] = {0, task_tss};
+    __asm__ __volatile__( "ljmpl *(%[a])"::[a]"r"(addr) );
+}
+
 
 #endif // CPU_H

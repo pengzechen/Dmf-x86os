@@ -1,6 +1,7 @@
 
 #include "types.h"
 #include "os.h"
+#include "cpu.h"
 
 extern gdt_table_t * gdt_table;
 extern page_dir_t * page_dir; 
@@ -28,9 +29,7 @@ void task_1_entry() {
 void task_sched() {
     static int task_tss = TASK_0_TSS;
     task_tss = (task_tss == TASK_0_TSS) ? TASK_1_TSS : TASK_0_TSS;
-
-    uint32_t addr[] = {0, task_tss};
-    __asm__ __volatile__( "ljmpl *(%[a])"::[a]"r"(addr) );
+    ljmp(task_tss);
 }
 
 uint32_t task0_tss[] = {
