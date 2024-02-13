@@ -1,6 +1,7 @@
 #ifndef CFG_H
 #define CFG_H
 
+
 #define KERNEL_CODE_SEG     (1 * 8)
 #define KERNEL_DATA_SEG     (2 * 8)
 
@@ -49,6 +50,26 @@
 // 生成一个指定范围内所有位均为 1 的位掩码
 #define GENMASK(h, l) \
 	(((~0UL) << (l)) & (~0UL >> (BITS_PER_LONG - 1 - (h))))
+
+
+#define assert(cond)							\
+do {											\
+	if (!(cond)) {								\
+		printf("%s:%d: assert failed: %s\n",	\
+		       __FILE__, __LINE__, #cond);		\
+	}										\
+} while (0)
+
+#define assert_msg(cond, fmt, args...)					\
+do {													\
+	if (!(cond)) {										\
+		printf("%s:%d: assert failed: %s: " fmt "\n",	\
+		       __FILE__, __LINE__, #cond, ## args);		\
+	}												\
+} while (0)
+
+
+
 
 
 #endif // CFG_H

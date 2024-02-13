@@ -7,7 +7,8 @@ KERNEL_BUILD_DIR = build/kernel
 
 INCLUDE = -I ./include
 
-CFLAGS = -g -c -O0 -m32 -fno-pie -fno-stack-protector -nostdlib -nostdinc
+CFLAGS_NO_STDIN = -g -c -O0 -m32 -fno-pie -fno-stack-protector -nostdlib -fno-builtin-puts
+CFLAGS = -g -c -O0 -m32 -fno-pie -fno-stack-protector -nostdlib -nostdinc -fno-builtin-puts
 
 basic: src/basic_set/os.c src/basic_set/start.S
 	rm -f build/disk.img
@@ -27,26 +28,36 @@ basic: src/basic_set/os.c src/basic_set/start.S
 
 
 kernel: src/kernel/init_as.S src/kernel/irq_as.S src/kernel/base.c \
-	   src/kernel/irq.c src/kernel/mem.c src/kernel/task.c src/kernel/init.c \
-	   src/kernel/io.c src/kernel/string.c
+	   src/kernel/irq.c  src/kernel/task.c src/kernel/init.c \
+	   src/kernel/io.c src/kernel/string.c src/kernel/printf.c \
+	   src/kernel/mem/mem.c src/kernel/mem/alloc.c src/kernel/mem/alloc_phy.c  \
+	   src/kernel/mem/alloc_page.c
 
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/init_as.S     -o $(KERNEL_BUILD_DIR)/init_as.o
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/irq_as.S     -o $(KERNEL_BUILD_DIR)/irq_as.o
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/base.c     -o $(KERNEL_BUILD_DIR)/base.o
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/irq.c     -o $(KERNEL_BUILD_DIR)/irq.o
-	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/mem.c     -o $(KERNEL_BUILD_DIR)/mem.o
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/task.c     -o $(KERNEL_BUILD_DIR)/task.o
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/init.c     -o $(KERNEL_BUILD_DIR)/init.o
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/io.c        -o $(KERNEL_BUILD_DIR)/io.o
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/string.c     -o $(KERNEL_BUILD_DIR)/string.o
+	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS_NO_STDIN) src/kernel/printf.c     -o $(KERNEL_BUILD_DIR)/printf.o
+
+
+	# mem
+	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/mem/mem.c     -o $(KERNEL_BUILD_DIR)/mem.o
+	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/mem/alloc.c     -o $(KERNEL_BUILD_DIR)/alloc.o
+	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/mem/alloc_phy.c     -o $(KERNEL_BUILD_DIR)/alloc_phy.o
+	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/mem/alloc_page.c     -o $(KERNEL_BUILD_DIR)/alloc_page.o
 
 
 
 	$(TOOL_PREFIX)ld -m elf_i386 -T src/kernel/kernel.lds   $(KERNEL_BUILD_DIR)/init_as.o   	\
 		$(KERNEL_BUILD_DIR)/irq_as.o $(KERNEL_BUILD_DIR)/base.o $(KERNEL_BUILD_DIR)/irq.o   	\
 		$(KERNEL_BUILD_DIR)/mem.o $(KERNEL_BUILD_DIR)/task.o $(KERNEL_BUILD_DIR)/init.o			\
-		$(KERNEL_BUILD_DIR)/io.o $(KERNEL_BUILD_DIR)/string.o                                   \
-		-o $(KERNEL_BUILD_DIR)/kernel.elf
+		$(KERNEL_BUILD_DIR)/io.o $(KERNEL_BUILD_DIR)/string.o  $(KERNEL_BUILD_DIR)/printf.o $(KERNEL_BUILD_DIR)/alloc.o  \
+		$(KERNEL_BUILD_DIR)/alloc_phy.o $(KERNEL_BUILD_DIR)/alloc_page.o \
+		-o $(KERNEL_BUILD_DIR)/kernel.elf 
 	
 	$(TOOL_PREFIX)objdump -x -d -S $(KERNEL_BUILD_DIR)/kernel.elf > $(KERNEL_BUILD_DIR)/kernel_dis.txt
 	$(TOOL_PREFIX)objcopy -O binary $(KERNEL_BUILD_DIR)/kernel.elf $(KERNEL_BUILD_DIR)/kernel.bin

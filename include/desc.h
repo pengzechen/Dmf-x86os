@@ -50,7 +50,7 @@ typedef struct _idt_entry_t {
 
 typedef uint32_t page_table_t;
 typedef uint32_t page_dir_t;
-
+typedef uint32_t phys_addr_t;
 
 typedef struct _tss_t {
     uint32_t pre_link;
