@@ -12,8 +12,6 @@ static struct spinlock lock;
 static void *freelist = (void*)0x200000;
 
 bool page_alloc_initialized(void) { return freelist != 0; }
-static inline bool is_power_of_2(uint32_t n) { return n && (!(n & (n - 1))); }
-static inline uint32_t fls(uint32_t word) { return BITS_PER_LONG - __builtin_clzl(word) - 1; }
 
 /*
  * Allocates (1 << order) physically contiguous and naturally aligned pages.
@@ -82,14 +80,11 @@ void free_pages(void *mem, uint32_t size)
 	void *old_freelist;
 	void *end;
 
-	assert_msg((uint32_t) mem % PAGE_SIZE == 0,
-		   "mem not page aligned: %p", mem);
+	assert_msg((uint32_t) mem % PAGE_SIZE == 0, "mem not page aligned: %p", mem);
 
 	assert_msg(size % PAGE_SIZE == 0, "size not page aligned: %#lx", size);
 
-	assert_msg(size == 0 || (uintptr_t)mem == -size ||
-		   (uintptr_t)mem + size > (uintptr_t)mem,
-		   "mem + size overflow: %p + %#lx", mem, size);
+	assert_msg(size == 0 || (uintptr_t)mem == -size || (uintptr_t)mem + size > (uintptr_t)mem, "mem + size overflow: %p + %#lx", mem, size);
 
 	if (size == 0) {
 		freelist = NULL;
@@ -99,9 +94,9 @@ void free_pages(void *mem, uint32_t size)
 	spin_lock(&lock);
 	old_freelist = freelist;
 	freelist = mem;
-	end = mem + size;
-	while (mem + PAGE_SIZE != end) {
-		*(void **)mem = (mem + PAGE_SIZE);
+	end = (u_char*)mem + size;
+	while ((u_char*)mem + PAGE_SIZE != end) {
+		*(void **)mem = ((u_char*)mem + PAGE_SIZE);
 		mem += PAGE_SIZE;
 	}
 

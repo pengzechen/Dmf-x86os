@@ -3,7 +3,7 @@
 
 #include "types.h"
 
-extern unsigned long strlen(const char *buf);
+extern uint32_t strlen(const char *buf);
 extern char *strcat(char *dest, const char *src);
 extern char *strcpy(char *dest, const char *src);
 extern int strcmp(const char *a, const char *b);

@@ -58,9 +58,9 @@ static void serial_init(void)
 
 static void print_serial(const char *buf)
 {
-	unsigned long len = strlen(buf);
+    uint32_t len = strlen(buf);
 
-    unsigned long i;
+    uint32_t i;
     if (!serial_inited) {
         serial_init();
         serial_inited = 1;
@@ -74,7 +74,7 @@ static void print_serial(const char *buf)
 
 void puts(const char *s)
 {
-	// spin_lock(&lock);
+	spin_lock(&lock);
 	print_serial(s);
-	// spin_unlock(&lock);
+	spin_unlock(&lock);
 }

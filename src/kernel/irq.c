@@ -10,13 +10,13 @@ extern idt_entry_t * idt_table;
 void set_idt_entry(int vec, void *addr, uint16_t selector, int dpl)
 {
     idt_entry_t *e = &idt_table[vec];
-    e->offset0 = (unsigned long)addr;
+    e->offset0 = (uint32_t)addr;
     e->selector = selector;
     e->ist = 0;
     e->type = 0xE;
     e->dpl = dpl;
     e->p = 1;
-    e->offset1 = (unsigned long)addr >> 16;
+    e->offset1 = (uint32_t)addr >> 16;
 }
 
 void set_idt_dpl(int vec, uint16_t dpl)
@@ -46,7 +46,7 @@ void irq_init() {
     outb(PIC0_IMR, 0xFE);
     outb(PIC1_IMR, 0xFF);
 
-    int tmo = 1193180 / 100; 
+    int tmo = 1193180 / 1; 
     outb(0x36, 0x43);
     outb((uint8_t)tmo, 0x40);
     outb(tmo >> 8, 0x40);

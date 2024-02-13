@@ -18,7 +18,7 @@ void task_0_entry() {
     uint8_t color = 0xff;
     while(1) {
         color--;
-        puts("this is task 0 -----------------\n");
+        puts("0\n");
     }
 }
 
@@ -26,7 +26,7 @@ void task_1_entry() {
     uint8_t color = 0x0;
     while(1) {
         color++;
-        puts("this is task 1 +++++++++++++++++\n");
+        puts("this is task 1 ++++s+++++++++++++\n");
     }
 }
 

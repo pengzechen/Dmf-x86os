@@ -27,27 +27,27 @@ void mem_test() {
 void mem_init () {
     mem_test();
 
-    page_alloc_ops_enable();
+    // page_alloc_ops_enable();
 
-    phys_alloc_init(0x200000, 0x7de0000);
-    phys_alloc_show();
-    void * m1 = malloc(56);
-    free(m1);
-    phys_alloc_show();
+    // phys_alloc_init(0x200000, 0x7de0000);
+    // phys_alloc_show();
+    // void * m1 = malloc(56);
+    // free(m1);
+    // phys_alloc_show();
 
-    void * m2 = malloc(64);
-    free(m2);
-    phys_alloc_show();
+    // void * m2 = malloc(64);
+    // free(m2);
+    // phys_alloc_show();
 
-    void * m3 = malloc(90);
-    free(m3);
-    phys_alloc_show();
+    // void * m3 = malloc(90);
+    // free(m3);
+    // phys_alloc_show();
 
-    void * m4 = malloc(128);
-    free(m4);
-    phys_alloc_show();
+    // void * m4 = malloc(128);
+    // free(m4);
+    // phys_alloc_show();
 
-    void * m5 = malloc(4096);
-    free(m5);
-    phys_alloc_show();
+    // void * m5 = malloc(4096);
+    // free(m5);
+    // phys_alloc_show();
 }   

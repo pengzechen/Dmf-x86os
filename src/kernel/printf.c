@@ -5,15 +5,12 @@
  * under the terms of the GNU Library General Public License version 2.
  */
 
-// #include "libcflat.h"
-// #include "monitor.h"
 #include "stdarg.h"
 
 #include "types.h"
 #include "string.h"
 
-#define BINSTR_SZ (sizeof(unsigned long) * 8 + sizeof(unsigned long) * 2)
-
+#define BINSTR_SZ (sizeof(uint32_t) * 8 + sizeof(uint32_t) * 2)
 
 #define BUFSZ 2000
 
@@ -103,7 +100,7 @@ static void print_int(pstream_t *ps, long n, int base, strprops_t props)
     print_str(ps, buf, props);
 }
 
-static void print_unsigned(pstream_t *ps, unsigned long n, int base,
+static void print_unsigned(pstream_t *ps, uint32_t n, int base,
 			   strprops_t props)
 {
     char buf[sizeof(long) * 3 + 3], *p = buf;
@@ -231,10 +228,10 @@ int vsnprintf(char *buf, int size, const char *fmt, va_list va)
 		print_unsigned(&s, va_arg(va, unsigned), 10, props);
 		break;
 	    case 1:
-		print_unsigned(&s, va_arg(va, unsigned long), 10, props);
+		print_unsigned(&s, va_arg(va, uint32_t), 10, props);
 		break;
 	    default:
-		print_unsigned(&s, va_arg(va, unsigned long long), 10, props);
+		print_unsigned(&s, va_arg(va, uint32_t), 10, props);
 		break;
 	    }
 	    break;
@@ -244,16 +241,16 @@ int vsnprintf(char *buf, int size, const char *fmt, va_list va)
 		print_unsigned(&s, va_arg(va, unsigned), 16, props);
 		break;
 	    case 1:
-		print_unsigned(&s, va_arg(va, unsigned long), 16, props);
+		print_unsigned(&s, va_arg(va, uint32_t), 16, props);
 		break;
 	    default:
-		print_unsigned(&s, va_arg(va, unsigned long long), 16, props);
+		print_unsigned(&s, va_arg(va, uint32_t), 16, props);
 		break;
 	    }
 	    break;
 	case 'p':
 	    props.alternate = true;
-	    print_unsigned(&s, (unsigned long)va_arg(va, void *), 16, props);
+	    print_unsigned(&s, (uint32_t)va_arg(va, void *), 16, props);
 	    break;
 	case 's':
 	    print_str(&s, va_arg(va, const char *), props);
@@ -334,13 +331,13 @@ int error(const char *fmt, ...)
     return r;
 }
 
-void binstr(unsigned long x, char out[BINSTR_SZ])
+void binstr(uint32_t x, char out[BINSTR_SZ])
 {
 	int i;
 	char *c;
 	int n;
 
-	n = sizeof(unsigned long) * 8;
+	n = sizeof(uint32_t) * 8;
 	i = 0;
 	c = &out[0];
 	for (;;) {
@@ -357,7 +354,7 @@ void binstr(unsigned long x, char out[BINSTR_SZ])
 	// assert(c + 1 - &out[0] == BINSTR_SZ);
 }
 
-void print_binstr(unsigned long x)
+void print_binstr(uint32_t x)
 {
 	char out[BINSTR_SZ];
 	binstr(x, out);

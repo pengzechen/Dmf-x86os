@@ -10,6 +10,9 @@ cpu自动压入 eip cs eflags esp ss
 */
 timer_int:
     push %ds
+    push %es
+    push %fs
+    push %gs
     pusha
     
     mov $0x20, %al
@@ -21,5 +24,8 @@ timer_int:
     call task_sched
 
     popa
+    pop %gs
+    pop %fs
+    pop %es
     pop %ds
     iret

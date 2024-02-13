@@ -1,9 +1,9 @@
 #include "string.h"
 #include "types.h"
 
-unsigned long strlen(const char *buf)
+uint32_t strlen(const char *buf)
 {
-    unsigned long len = 0;
+    uint32_t len = 0;
 
     while (*buf++)
 	++len;
