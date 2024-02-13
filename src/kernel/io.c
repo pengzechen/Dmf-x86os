@@ -3,7 +3,7 @@
 #include "cpu.h"
 #include "string.h"
 #include "spin_lock.h"
-#include "io.h"
+
 
 static struct spinlock lock;
 static int serial_iobase = 0x3f8;
@@ -72,7 +72,7 @@ static void print_serial(const char *buf)
 
 }
 
-void k_puts(const char *s)
+void puts(const char *s)
 {
 	// spin_lock(&lock);
 	print_serial(s);
