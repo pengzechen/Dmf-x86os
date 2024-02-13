@@ -2,6 +2,9 @@
 #include "types.h"
 #include "desc.h"
 #include "bios.h"
+#include "alloc_page.h"
+#include "alloc.h"
+#include "alloc_phy.h"
 
 extern page_table_t * page_table;
 extern page_dir_t * page_dir; 
@@ -20,6 +23,31 @@ void mem_test() {
     page_table [offset] =   (uint32_t)  map_test|PDE_P|PDE_W|PDE_U;
 }
 
+
 void mem_init () {
     mem_test();
+
+    page_alloc_ops_enable();
+
+    phys_alloc_init(0x200000, 0x7de0000);
+    phys_alloc_show();
+    void * m1 = malloc(56);
+    free(m1);
+    phys_alloc_show();
+
+    void * m2 = malloc(64);
+    free(m2);
+    phys_alloc_show();
+
+    void * m3 = malloc(90);
+    free(m3);
+    phys_alloc_show();
+
+    void * m4 = malloc(128);
+    free(m4);
+    phys_alloc_show();
+
+    void * m5 = malloc(4096);
+    free(m5);
+    phys_alloc_show();
 }   
