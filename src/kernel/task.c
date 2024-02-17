@@ -3,7 +3,8 @@
 #include "desc.h"
 #include "cpu.h"
 
-extern void puts(const char * s);
+extern int printf(const char *fmt, ...);
+
 
 extern gdt_table_t * gdt_table;
 extern page_dir_t * page_dir; 
@@ -17,16 +18,14 @@ uint32_t task_1_stack_dpl3[1024];
 void task_0_entry() {
     uint8_t color = 0xff;
     while(1) {
-        color--;
-        puts("0\n");
+        printf("this is --------", color--);
     }
 }
 
 void task_1_entry() {
     uint8_t color = 0x0;
     while(1) {
-        color++;
-        puts("this is task 1 ++++s+++++++++++++\n");
+        printf("this is ++++++++", color++);
     }
 }
 

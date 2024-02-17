@@ -25,22 +25,22 @@ typedef struct _idt_entry_t {
     uint16_t offset0;
     uint16_t selector;
 
-    unsigned short ist : 3;
-    unsigned short : 5;
+    uint16_t ist : 3;
+    uint16_t : 5;
     /* idt类型 */
-    unsigned short type : 4;
-    unsigned short : 1;
+    uint16_t type : 4;
+    uint16_t : 1;
     /* 特权级 */
-    unsigned short dpl : 2;
+    uint16_t dpl : 2;
     /* 1 存在*/
-    unsigned short p : 1;
+    uint16_t p : 1;
 
     uint16_t offset1;
 
 } idt_entry_t OS_ALIGN(8);
 
 
-/* -------------  Page --------------------------*/
+/* -------------  Page -------------------------- */
 
 
 #define PDE_P    (1 << 0)
@@ -62,5 +62,24 @@ typedef struct _tss_t {
     uint32_t iomap;
 }tss_t;
 
+
+/* -------------- syscall describe entry -------- */
+
+typedef struct _syscall_des_t {
+    uint16_t offset0;
+    uint16_t sellector;
+
+    uint16_t param_count: 5;  // 32 parameters
+    uint16_t :3;
+
+    uint16_t type:4;
+    uint16_t :1;
+    /* 特权级 */
+    uint16_t dpl : 2;
+    /* 1 存在*/
+    uint16_t p : 1;
+
+    uint16_t offset1;
+} syscall_des_t OS_ALIGN(8);
 
 #endif  // OS_H
