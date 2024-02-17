@@ -1,10 +1,13 @@
 #include "cfg.h"
 
 .global _start
-.extern init, task_0_entry
+.extern init, task_0_entry, cpushow
 
 _start:
     call init
+
+    // call cpushow
+
     jmp to_task_0
 
 
