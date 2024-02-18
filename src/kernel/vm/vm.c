@@ -13,6 +13,7 @@ bool is_vmx_supported() {
         printf("This cpu support vt");
     } else {
         printf("This cpu don't support vt");
+		return false;
     }
     // STEP (2) Check if main board support vt
     uint32_t md_check = rdmsr(MSR_IA32_FEATURE_CONTROL);
@@ -26,4 +27,5 @@ bool is_vmx_supported() {
 	// STEP (3) Enable VMX in MSR_IA32_FEATURE_CONTROL
 	wrmsr(MSR_IA32_FEATURE_CONTROL, 0x5);
 
+	return true;
 }
