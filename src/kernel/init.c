@@ -7,14 +7,13 @@ extern int printf(const char *fmt, ...);
 extern void irq_init();
 extern void mem_init();
 extern void task_init();
+extern void virt_enable();
 void init_syscall(void);
 
 void init() {
+    init_syscall();
     irq_init();
     mem_init();
     task_init();
-    init_syscall();
-    if (!is_vmx_supported()) {
-        printf("vmx is not support");
-    }
+    virt_enable();
 }

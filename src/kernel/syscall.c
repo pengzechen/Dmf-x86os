@@ -15,10 +15,10 @@ void do_syscall (int func, char * str, char color) {
     if (func == 2) {
         uint16_t * dest = (uint16_t*)0xb8000 + 80 * row;
         while (*str) {
-            *dest++ = *str++ | (0x02 << 8);
+            *dest++ = *str++ | (color << 8);
         }
         row = (row >= 25) ? 0 : row + 1;
-        for (int i = 0; i<0xfffff; i++) ;
+        // for (int i = 0; i<0xffffff; i++) ;
     }
 }
 

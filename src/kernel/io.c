@@ -89,6 +89,6 @@ void puts(const char *s)
 {
 	// spin_lock(&lock);
 	// print_serial(s);
-    sys_show(s, 0);
+    sys_show(s, 0x02);
 	// spin_unlock(&lock);
 }

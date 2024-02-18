@@ -42,17 +42,52 @@ static inline void cpuid(unsigned int op, unsigned int *eax, unsigned int *ebx,
 	    : "memory");
 }
 
-static uint32_t rdmsr(unsigned reg)
+static inline uint64_t rdmsr(uint32_t index)
 {
-    unsigned a, d;
-
-    __asm__ __volatile__ ("rdmsr" : "=a"(a), "=d"(d) : "c"(APIC_BASE_MSR + reg/16));
-    return a | (unsigned long long)d << 32;
+    uint32_t a, d;
+    __asm__ __volatile__ ("rdmsr" : "=a"(a), "=d"(d) : "c"(index) : "memory");
+    return a | ((uint64_t)d << 32);
 }
 
-static void wrmsr(unsigned reg, uint32_t val)
+static inline void wrmsr(uint32_t index, uint64_t val)
 {
-    __asm__ __volatile__ ("wrmsr" : : "a"(val), "d"(0), "c"(APIC_BASE_MSR + reg/16));
+    uint32_t a = val, d = val >> 32;
+    __asm__ __volatile__ ("wrmsr" : : "a"(a), "d"(d), "c"(index) : "memory");
+}
+
+
+
+static inline void write_cr0(uint32_t val)
+{
+    __asm__ __volatile__ ("mov %0, %%cr0" : : "r"(val) : "memory");
+}
+
+static inline uint32_t read_cr0(void)
+{
+    uint32_t val;
+    __asm__ __volatile__ ("mov %%cr0, %0" : "=r"(val) : : "memory");
+    return val;
+}
+
+static inline void write_cr4(uint32_t val)
+{
+    __asm__ __volatile__ ("mov %0, %%cr4" : : "r"(val) : "memory");
+}
+
+static inline uint32_t read_cr4(void)
+{
+    uint32_t val;
+    __asm__ __volatile__ ("mov %%cr4, %0" : "=r"(val) : : "memory");
+    return val;
+}
+
+
+
+static inline unsigned long read_rflags(void)
+{
+	unsigned long f;
+	__asm__ __volatile__ ("pushf; pop %0\n\t" : "=rm"(f));
+	return f;
 }
 
 
