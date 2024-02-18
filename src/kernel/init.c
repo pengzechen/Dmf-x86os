@@ -15,6 +15,6 @@ void init() {
     task_init();
     init_syscall();
     if (!is_vmx_supported()) {
-        printf("vmx is not support\n");
+        printf("vmx is not support");
     }
 }

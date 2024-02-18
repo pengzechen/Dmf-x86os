@@ -107,21 +107,21 @@ void cpushow()
 	struct cpuinfo_x86 _cpuinfo_x86;
 
     cpuid(0, &eax, &ebx, &ecx, &edx);
-    printf("EBX <- %x (\"Genu\")EDX <- %x (\"ineI\") ECX <- %x (\"ntel\")\n", ebx, edx ,ecx);
+    printf("EBX <- %x (\"Genu\")EDX <- %x (\"ineI\") ECX <- %x (\"ntel\")", ebx, edx ,ecx);
 
 	get_cpu_address_sizes(&_cpuinfo_x86);
 	cpu_detect(&_cpuinfo_x86);
 	get_model_name(&_cpuinfo_x86);
 
-	printf("Address sizes:   phys_bits = %d  virt_bits = %d\n", _cpuinfo_x86.x86_phys_bits,  _cpuinfo_x86.x86_virt_bits);
-	printf("Vendor Id= %s\n", _cpuinfo_x86.x86_vendor_id);
-	printf("cpuid level = %d\n", _cpuinfo_x86.cpuid_level);
-	printf("CPU family = %d\n", _cpuinfo_x86.x86);
-	printf("Model = %d\n", _cpuinfo_x86.x86_model);
-	printf("Stepping = %d\n", _cpuinfo_x86.x86_stepping);
-	printf("Model name = %s\n", _cpuinfo_x86.x86_model_id);
-	printf("clflush_size = %d\n", _cpuinfo_x86.x86_clflush_size);
-	printf("cache_alignment = %d\n", _cpuinfo_x86.x86_cache_alignment);
+	printf("Address sizes:   phys_bits = %d  virt_bits = %d", _cpuinfo_x86.x86_phys_bits,  _cpuinfo_x86.x86_virt_bits);
+	printf("Vendor Id= %s", _cpuinfo_x86.x86_vendor_id);
+	printf("cpuid level = %d", _cpuinfo_x86.cpuid_level);
+	printf("CPU family = %d", _cpuinfo_x86.x86);
+	printf("Model = %d", _cpuinfo_x86.x86_model);
+	printf("Stepping = %d", _cpuinfo_x86.x86_stepping);
+	printf("Model name = %s", _cpuinfo_x86.x86_model_id);
+	printf("clflush_size = %d", _cpuinfo_x86.x86_clflush_size);
+	printf("cache_alignment = %d", _cpuinfo_x86.x86_cache_alignment);
 
 }
 
