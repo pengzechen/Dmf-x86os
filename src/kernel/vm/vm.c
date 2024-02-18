@@ -9,7 +9,7 @@ bool is_vmx_supported() {
 	cpuid(0x1, &eax, &ebx, &ecx, &edx);
     // STEP (1) Check if cpu support vt
     printf("ecx: %x", ecx);
-    if (((ecx >> 5) & 1) != 0) {
+    if ((ecx & (1 << 5)) != 0) {
         printf("This cpu support vt");
     } else {
         printf("This cpu don't support vt");

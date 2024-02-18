@@ -74,8 +74,15 @@ static void print_serial(const char *buf)
 
 void sys_show (char * str, char color) {
     uint32_t addr[] = {0, 7 * 8};
-    __asm__ __volatile__("push %[color]; push %[str]; push %[id]; lcalll *(%[a])"
-    ::[a]"r"(addr), [color]"m"(color), [str]"m"(str), [id]"r"(2));
+    __asm__ __volatile__("push %[color];"
+                         "push %[str];"
+                         "push %[id];"
+                         "lcalll *(%[a])"
+                        :
+                        :[a]"r"(addr), 
+                        [color]"m"(color), 
+                        [str]"m"(str), 
+                        [id]"r"(2));
 }
 
 void puts(const char *s)
