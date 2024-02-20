@@ -6,8 +6,9 @@
 _start:
     call init
 
-    // call cpushow
+    call cpushow
 
+    jmp .
     jmp to_task_0
 
 

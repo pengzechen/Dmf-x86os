@@ -82,9 +82,9 @@ void free_pages(void *mem, uint32_t size)
 
 	assert_msg((uint32_t) mem % PAGE_SIZE == 0, "mem not page aligned: %p", mem);
 
-	assert_msg(size % PAGE_SIZE == 0, "size not page aligned: %#lx", size);
+	assert_msg(size % PAGE_SIZE == 0, "size not page aligned: %#x", size);
 
-	assert_msg(size == 0 || (uintptr_t)mem == -size || (uintptr_t)mem + size > (uintptr_t)mem, "mem + size overflow: %p + %#lx", mem, size);
+	assert_msg(size == 0 || (uintptr_t)mem == -size || (uintptr_t)mem + size > (uintptr_t)mem, "mem + size overflow: %p + %#x", mem, size);
 
 	if (size == 0) {
 		freelist = NULL;

@@ -18,14 +18,14 @@ uint32_t task_1_stack_dpl3[1024];
 void task_0_entry() {
     uint8_t color = 0xff;
     while(1) {
-        printf("this is --------", color--);
+        printf("this is --------");
     }
 }
 
 void task_1_entry() {
     uint8_t color = 0x0;
     while(1) {
-        printf("this is ++++++++", color++);
+        printf("this is ++++++++");
     }
 }
 

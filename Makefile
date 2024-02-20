@@ -1,6 +1,7 @@
 
 
-TOOL_PREFIX = x86_64-elf-
+# TOOL_PREFIX = x86_64-elf-
+TOOL_PREFIX = ""
 
 BUILD_DIR = build/basic_set
 KERNEL_BUILD_DIR = build/kernel
@@ -12,7 +13,10 @@ CFLAGS = -g -c -O0 -m32 -fno-pie -fno-stack-protector -nostdlib -nostdinc -fno-b
 
 basic: src/basic_set/os.c src/basic_set/start.S
 	rm -f build/disk.img
-	fsutil file createnew build/disk.img 52428800
+	# linux 
+	dd if=/dev/zero of=build/disk.img bs=1M count=50
+	# windows
+	# fsutil file createnew build/disk.img 52428800
 
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/basic_set/start.S  -o $(BUILD_DIR)/start.o
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/basic_set/os.c     -o $(BUILD_DIR)/os.o
@@ -70,7 +74,7 @@ kernel: src/kernel/init_as.S src/kernel/irq_as.S src/kernel/base.c \
 	$(TOOL_PREFIX)objcopy -O binary $(KERNEL_BUILD_DIR)/kernel.elf $(KERNEL_BUILD_DIR)/kernel.bin
 	$(TOOL_PREFIX)readelf -a $(KERNEL_BUILD_DIR)/kernel.elf > $(KERNEL_BUILD_DIR)/kernel_elf.txt
 
-	dd if=$(KERNEL_BUILD_DIR)/kernel.bin   of=build/disk.img bs=512  conv=notrunc  seek=100
+	dd if=$(KERNEL_BUILD_DIR)/kernel.bin  of=build/disk.img  bs=512  conv=notrunc  seek=100
 
 
 

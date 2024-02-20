@@ -4,6 +4,7 @@
 #include "../mem/alloc.h"
 
 extern int printf(const char *fmt, ...);
+extern void phys_alloc_show();
 
 bool is_vmx_supported() {
 	unsigned int eax, ebx, ecx, edx;
@@ -31,8 +32,10 @@ bool is_vmx_supported() {
 	return true;
 }
 
+
 uint64_t *vmxon_region;
-void *guest_stack, *guest_syscall_stack;
+void *guest_stack;
+void *guest_syscall_stack;
 
 union vmx_basic basic;
 
@@ -47,7 +50,6 @@ void init_vmx () {
 	uint64_t fix_cr0_set, fix_cr0_clr;
 	uint64_t fix_cr4_set, fix_cr4_clr;
 
-	// test
 	printf("sizeof fix_cr0_set: %d", sizeof(fix_cr0_set));
 
 	vmxon_region = malloc(4096);
@@ -97,14 +99,12 @@ void init_vmx () {
 #define X86_EFLAGS_ZF    0x00000040
 
 
-static inline int vmx_on(void)
+static inline bool vmx_on(void)
 {
 	bool ret;
 	uint64_t rflags = read_rflags() | X86_EFLAGS_CF | X86_EFLAGS_ZF;
 	__asm__ __volatile__ ("push %1; popf; vmxon %2; setbe %0\n\t"
-		      : "=q" (ret) 
-			  : "q" (rflags), "m" (vmxon_region) 
-			  : "cc");
+		      : "=q" (ret) : "q" (rflags), "m" (vmxon_region) : "cc");
 	return ret;
 }
 
