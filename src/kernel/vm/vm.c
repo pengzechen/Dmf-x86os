@@ -255,8 +255,8 @@ static void init_vmcs_guest(void)
 	vmcs_write(GUEST_SEL_ES, KERNEL_DATA_SEG);
 	vmcs_write(GUEST_SEL_FS, KERNEL_DATA_SEG);
 	vmcs_write(GUEST_SEL_GS, KERNEL_DATA_SEG);
-	vmcs_write(GUEST_SEL_TR, 0x80); // TSS_MAIN
 	vmcs_write(GUEST_SEL_LDTR, 0);
+	vmcs_write(GUEST_SEL_TR, 0x80); // TSS_MAIN
 
 	vmcs_write(GUEST_BASE_CS, 0);
 	vmcs_write(GUEST_BASE_ES, 0);
@@ -264,8 +264,9 @@ static void init_vmcs_guest(void)
 	vmcs_write(GUEST_BASE_DS, 0);
 	vmcs_write(GUEST_BASE_FS, 0);
 	vmcs_write(GUEST_BASE_GS, 0);
-	// vmcs_write(GUEST_BASE_TR, tss_descr.base);
 	vmcs_write(GUEST_BASE_LDTR, 0);
+	// vmcs_write(GUEST_BASE_TR, tss_descr.base);
+
 
 	vmcs_write(GUEST_LIMIT_CS, 0xFFFFFFFF);
 	vmcs_write(GUEST_LIMIT_DS, 0xFFFFFFFF);
@@ -332,7 +333,7 @@ void vmcs_init () {
 		ept_vpid.val = 0;
 	}
 
-		/* All settings to pin/exit/enter/cpu
+	/* All settings to pin/exit/enter/cpu
 	   control fields should be placed here */
 	ctrl_pin |= PIN_EXTINT | PIN_NMI | PIN_VIRT_NMI;
 	ctrl_exit = EXI_LOAD_EFER | EXI_HOST_64;
