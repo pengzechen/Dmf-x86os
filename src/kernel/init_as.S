@@ -8,7 +8,6 @@ _start:
 
     call cpushow
 
-    jmp .
     jmp to_task_0
 
 

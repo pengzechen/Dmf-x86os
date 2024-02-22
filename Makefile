@@ -37,7 +37,7 @@ kernel: src/kernel/init_as.S src/kernel/irq_as.S src/kernel/base.c \
 	   src/kernel/syscall.c  src/kernel/syscall_as.S \
 	   src/kernel/mem/mem.c src/kernel/mem/alloc.c src/kernel/mem/alloc_phy.c  \
 	   src/kernel/mem/alloc_page.c \
-	   src/kernel/vm/vm.c
+	   src/kernel/vm/vm.c src/kernel/vm/vm_as.S
 
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/init_as.S     -o $(KERNEL_BUILD_DIR)/init_as.o
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/irq_as.S     -o $(KERNEL_BUILD_DIR)/irq_as.o
@@ -59,6 +59,7 @@ kernel: src/kernel/init_as.S src/kernel/irq_as.S src/kernel/base.c \
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/mem/alloc_page.c     -o $(KERNEL_BUILD_DIR)/alloc_page.o
 	# vm
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/vm/vm.c     -o $(KERNEL_BUILD_DIR)/vm.o
+	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/vm/vm_as.S     -o $(KERNEL_BUILD_DIR)/vm_as.o
 
 
 
@@ -67,7 +68,7 @@ kernel: src/kernel/init_as.S src/kernel/irq_as.S src/kernel/base.c \
 		$(KERNEL_BUILD_DIR)/mem.o $(KERNEL_BUILD_DIR)/task.o $(KERNEL_BUILD_DIR)/init.o	$(KERNEL_BUILD_DIR)/syscall_as.o  \
 		$(KERNEL_BUILD_DIR)/io.o $(KERNEL_BUILD_DIR)/string.o  $(KERNEL_BUILD_DIR)/printf.o $(KERNEL_BUILD_DIR)/alloc.o  \
 		$(KERNEL_BUILD_DIR)/alloc_phy.o $(KERNEL_BUILD_DIR)/alloc_page.o  $(KERNEL_BUILD_DIR)/cpuinfo.o  $(KERNEL_BUILD_DIR)/syscall.o \
-		$(KERNEL_BUILD_DIR)/vm.o   \
+		$(KERNEL_BUILD_DIR)/vm.o  $(KERNEL_BUILD_DIR)/vm_as.o \
 		-o $(KERNEL_BUILD_DIR)/kernel.elf 
 	
 	$(TOOL_PREFIX)objdump -x -d -S $(KERNEL_BUILD_DIR)/kernel.elf > $(KERNEL_BUILD_DIR)/kernel_dis.txt

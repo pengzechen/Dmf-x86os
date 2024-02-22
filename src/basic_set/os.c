@@ -3,7 +3,7 @@
 #include "types.h"
 #include "cpu.h"
 #include "bios.h"
-#include "elf.h"
+#include "os_elf.h"
 
 // 2048  size: 0x800  2k
 gdt_table_t
