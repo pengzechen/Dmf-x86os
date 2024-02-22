@@ -25,12 +25,13 @@ void mem_test() {
 
 
 void mem_init () {
-    mem_test();
+    /* ajax-2024-2-21 0x1000 放置了一些内存信息*/
+    // mem_test();
 
     // page_alloc_ops_enable();
     /* 暂时不需要使用页分配 */
 
-    phys_alloc_init(0x200000, 0x7de0000);
+    phys_alloc_init(0x300000, 0x7ce0000);
     phys_alloc_show();
     // void * m1 = malloc(56);
     // free(m1);

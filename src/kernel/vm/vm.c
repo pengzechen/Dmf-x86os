@@ -2,6 +2,7 @@
 #include "cpu.h"
 #include "vm.h"
 #include "../mem/alloc.h"
+#include "../mem/alloc_page.h"
 
 extern int printf(const char *fmt, ...);
 extern void phys_alloc_show();
@@ -33,9 +34,9 @@ bool is_vmx_supported() {
 }
 
 
-uint64_t *vmxon_region;
-void *guest_stack;
-void *guest_syscall_stack;
+uint64_t * vmxon_region OS_ALIGN(4096) = (void*)0;
+void * guest_stack;
+void * guest_syscall_stack;
 
 union vmx_basic basic;
 
@@ -51,11 +52,15 @@ void init_vmx () {
 	uint64_t fix_cr4_set, fix_cr4_clr;
 
 	printf("sizeof fix_cr0_set: %d", sizeof(fix_cr0_set));
+	printf("sizeof vmxon_region: %d", sizeof(vmxon_region));
+	printf("sizeof uint8_t: %d", sizeof(uint8_t));
+	printf("sizeof guest_stack: %d", sizeof(guest_stack));
 
-	vmxon_region = malloc(4096);
+
+	vmxon_region = alloc_page();		// 0x200000
 	phys_alloc_show();
 	memset(vmxon_region, 0, 4096);
-	guest_stack = malloc(4096);
+	guest_stack = malloc(4096);			// 使用页分配机制，0x300000 开始
 	phys_alloc_show();
 	memset(guest_stack, 0, 4096);
 	guest_syscall_stack = malloc(4096);
@@ -64,35 +69,41 @@ void init_vmx () {
 
 	fix_cr0_set = rdmsr(MSR_IA32_VMX_CR0_FIXED0);
 	fix_cr0_clr = rdmsr(MSR_IA32_VMX_CR0_FIXED1);
+
 	fix_cr4_set = rdmsr(MSR_IA32_VMX_CR4_FIXED0);
 	fix_cr4_clr = rdmsr(MSR_IA32_VMX_CR4_FIXED1);
 
 	basic.val = rdmsr(MSR_IA32_VMX_BASIC);
 	
 	
-	ctrl_pin_rev.val = rdmsr(basic.ctrl ? MSR_IA32_VMX_TRUE_PIN : MSR_IA32_VMX_PINBASED_CTLS);
-	ctrl_exit_rev.val = rdmsr(basic.ctrl ? MSR_IA32_VMX_TRUE_EXIT : MSR_IA32_VMX_EXIT_CTLS);
-	ctrl_enter_rev.val = rdmsr(basic.ctrl ? MSR_IA32_VMX_TRUE_ENTRY : MSR_IA32_VMX_ENTRY_CTLS);
-	ctrl_cpu_rev[0].val = rdmsr(basic.ctrl ? MSR_IA32_VMX_TRUE_PROC : MSR_IA32_VMX_PROCBASED_CTLS);
+	// ctrl_pin_rev.val = rdmsr(basic.ctrl ? MSR_IA32_VMX_TRUE_PIN : MSR_IA32_VMX_PINBASED_CTLS);
+	// ctrl_exit_rev.val = rdmsr(basic.ctrl ? MSR_IA32_VMX_TRUE_EXIT : MSR_IA32_VMX_EXIT_CTLS);
+	// ctrl_enter_rev.val = rdmsr(basic.ctrl ? MSR_IA32_VMX_TRUE_ENTRY : MSR_IA32_VMX_ENTRY_CTLS);
+	// ctrl_cpu_rev[0].val = rdmsr(basic.ctrl ? MSR_IA32_VMX_TRUE_PROC : MSR_IA32_VMX_PROCBASED_CTLS);
 	
-	if ((ctrl_cpu_rev[0].clr & CPU_SECONDARY) != 0) {
-		ctrl_cpu_rev[1].val = rdmsr(MSR_IA32_VMX_PROCBASED_CTLS2);
-	} else {
-		ctrl_cpu_rev[1].val = 0;
-	}
+	// if ((ctrl_cpu_rev[0].clr & CPU_SECONDARY) != 0) {
+	// 	ctrl_cpu_rev[1].val = rdmsr(MSR_IA32_VMX_PROCBASED_CTLS2);
+	// } else {
+	// 	ctrl_cpu_rev[1].val = 0;
+	// }
 
+	// if ((ctrl_cpu_rev[1].clr & (CPU_EPT | CPU_VPID)) != 0) {
+	// 	ept_vpid.val = rdmsr(MSR_IA32_VMX_EPT_VPID_CAP);
+	// } else {
+	// 	ept_vpid.val = 0;
+	// }
+
+	uint32_t cr0 = read_cr0();
+	uint32_t cr4 = read_cr4();
+
+	uint32_t cr0_2 = ( cr0 & fix_cr0_clr) | fix_cr0_set ;
+	uint32_t cr4_2 = ( cr4 & fix_cr4_clr) | fix_cr4_set ;//| X86_CR4_VMXE ;
 	
-	if ((ctrl_cpu_rev[1].clr & (CPU_EPT | CPU_VPID)) != 0) {
-		ept_vpid.val = rdmsr(MSR_IA32_VMX_EPT_VPID_CAP);
-	} else {
-		ept_vpid.val = 0;
-	}
+	write_cr0(cr0_2);
+	write_cr4(cr4_2);
+	// write_cr4(read_cr4()  | X86_CR4_VMXE);
 
-	
-	write_cr0((read_cr0() & fix_cr0_clr) | fix_cr0_set);
-	write_cr4((read_cr4() & fix_cr4_clr) | fix_cr4_set | X86_CR4_VMXE);
-
-	*vmxon_region = basic.revision;
+	*(uint32_t*)(vmxon_region) = basic.revision;
 }
 
 #define X86_EFLAGS_CF    0x00000001
@@ -108,8 +119,11 @@ static inline bool vmx_on(void)
 	return ret;
 }
 
+extern struct asor_guest asor_guests[];
 
 void virt_enable () {
+	struct asor_guest *guest = &asor_guests[0];
+
 	if (!is_vmx_supported()) {
         printf("vmx is not support");
 		return;
@@ -123,4 +137,36 @@ void virt_enable () {
 	} else {
 		printf("vmx on");
 	}
+
+	
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void asor_guest_main(void)
+{
+	printf("Hello Guest\n");
+}
+
+static int asor_guest_exit_handler(void)
+{
+	print_vmexit_info();
+	return VMX_EXIT;
+}
+
+struct asor_guest asor_guests[] = {
+	{ "default guest", NULL, asor_guest_main, asor_guest_exit_handler, NULL, {0} },
+	{ NULL, NULL, NULL, NULL, NULL, {0} },
+};

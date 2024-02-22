@@ -6,6 +6,12 @@
 
 #define X86_CR4_VMXE   0x00002000
 
+#define VMX_START		0
+#define VMX_VMEXIT		1
+#define VMX_EXIT		2
+#define VMX_RESUME		3
+#define VMX_VMABORT		4
+#define VMX_VMSKIP		5
 
 union vmx_basic {
 	uint64_t val;
@@ -78,6 +84,38 @@ enum Ctrl1 {
 	CPU_SHADOW_VMCS		= 1ul << 14,
 	CPU_RDSEED		= 1ul << 16,
 	CPU_PML                 = 1ul << 17,
+};
+
+struct regs {
+	uint64_t rax;
+	uint64_t rcx;
+	uint64_t rdx;
+	uint64_t rbx;
+	uint64_t cr2;
+	uint64_t rbp;
+	uint64_t rsi;
+	uint64_t rdi;
+	uint64_t r8;
+	uint64_t r9;
+	uint64_t r10;
+	uint64_t r11;
+	uint64_t r12;
+	uint64_t r13;
+	uint64_t r14;
+	uint64_t r15;
+	uint64_t rflags;
+};
+
+struct asor_guest {
+	const char *name;
+	int (*init)(struct vmcs *vmcs);
+	void (*guest_main)(void);
+	int (*exit_handler)(void);
+	void (*syscall_handler)(uint64_t syscall_no);
+	struct regs guest_regs;
+	int (*entry_failure_handler)(struct vmentry_failure *failure);
+	struct vmcs *vmcs;
+	int exits;
 };
 
 
