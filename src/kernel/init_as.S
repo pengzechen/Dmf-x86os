@@ -8,6 +8,9 @@ _start:
 
     call cpushow
 
+    mov $KERNEL_TSS, %ax
+    ltr %ax
+
     jmp to_task_0
 
 

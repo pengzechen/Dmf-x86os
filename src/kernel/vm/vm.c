@@ -219,7 +219,7 @@ static void init_vmcs_host(void)
 	vmcs_write(HOST_SEL_GS, KERNEL_DATA_SEG);
 
 	vmcs_write(HOST_SEL_TR, 0x80);  // TSS_MAIN
-	// vmcs_write(HOST_BASE_TR, tss_descr.base);
+	vmcs_write(HOST_BASE_TR, (0x9000 + 0x80));  // tss_descr.base
 
 	vmcs_write(HOST_BASE_GDTR, (uint32_t)gdt_table);   // gdt64_desc.base
 	vmcs_write(HOST_BASE_IDTR, (uint32_t)idt_table);   // idt_descr.base
@@ -248,42 +248,46 @@ static void init_vmcs_guest(void)
 	vmcs_write(GUEST_CR4, guest_cr4);
 
 	/* 26.3.1.2 */
+	{
+		vmcs_write(GUEST_SEL_CS, KERNEL_CODE_SEG);
+		vmcs_write(GUEST_BASE_CS, 0);
+		vmcs_write(GUEST_LIMIT_CS, 0xFFFFFFFF);
+		vmcs_write(GUEST_AR_CS, 0xa09b);
 
-	vmcs_write(GUEST_SEL_CS, KERNEL_CODE_SEG);
-	vmcs_write(GUEST_SEL_SS, KERNEL_DATA_SEG);
-	vmcs_write(GUEST_SEL_DS, KERNEL_DATA_SEG);
-	vmcs_write(GUEST_SEL_ES, KERNEL_DATA_SEG);
-	vmcs_write(GUEST_SEL_FS, KERNEL_DATA_SEG);
-	vmcs_write(GUEST_SEL_GS, KERNEL_DATA_SEG);
-	vmcs_write(GUEST_SEL_LDTR, 0);
-	vmcs_write(GUEST_SEL_TR, 0x80); // TSS_MAIN
+		vmcs_write(GUEST_SEL_SS, KERNEL_DATA_SEG);
+		vmcs_write(GUEST_BASE_SS, 0);
+		vmcs_write(GUEST_LIMIT_SS, 0xFFFFFFFF);
+		vmcs_write(GUEST_AR_SS, 0xc093);
 
-	vmcs_write(GUEST_BASE_CS, 0);
-	vmcs_write(GUEST_BASE_ES, 0);
-	vmcs_write(GUEST_BASE_SS, 0);
-	vmcs_write(GUEST_BASE_DS, 0);
-	vmcs_write(GUEST_BASE_FS, 0);
-	vmcs_write(GUEST_BASE_GS, 0);
-	vmcs_write(GUEST_BASE_LDTR, 0);
-	// vmcs_write(GUEST_BASE_TR, tss_descr.base);
+		vmcs_write(GUEST_SEL_DS, KERNEL_DATA_SEG);
+		vmcs_write(GUEST_BASE_DS, 0);
+		vmcs_write(GUEST_LIMIT_DS, 0xFFFFFFFF);
+		vmcs_write(GUEST_AR_DS, 0xc093);
 
+		vmcs_write(GUEST_SEL_ES, KERNEL_DATA_SEG);
+		vmcs_write(GUEST_BASE_ES, 0);
+		vmcs_write(GUEST_LIMIT_ES, 0xFFFFFFFF);
+		vmcs_write(GUEST_AR_ES, 0xc093);
 
-	vmcs_write(GUEST_LIMIT_CS, 0xFFFFFFFF);
-	vmcs_write(GUEST_LIMIT_DS, 0xFFFFFFFF);
-	vmcs_write(GUEST_LIMIT_ES, 0xFFFFFFFF);
-	vmcs_write(GUEST_LIMIT_SS, 0xFFFFFFFF);
-	vmcs_write(GUEST_LIMIT_FS, 0xFFFFFFFF);
-	vmcs_write(GUEST_LIMIT_GS, 0xFFFFFFFF);
-	vmcs_write(GUEST_LIMIT_LDTR, 0xffff);
-	// vmcs_write(GUEST_LIMIT_TR, tss_descr.limit);
+		vmcs_write(GUEST_SEL_FS, KERNEL_DATA_SEG);
+		vmcs_write(GUEST_BASE_FS, 0);
+		vmcs_write(GUEST_LIMIT_FS, 0xFFFFFFFF);
+		vmcs_write(GUEST_AR_FS, 0xc093);
 
-	vmcs_write(GUEST_AR_CS, 0xa09b);
-	vmcs_write(GUEST_AR_DS, 0xc093);
-	vmcs_write(GUEST_AR_ES, 0xc093);
-	vmcs_write(GUEST_AR_FS, 0xc093);
-	vmcs_write(GUEST_AR_GS, 0xc093);
-	vmcs_write(GUEST_AR_SS, 0xc093);
-	vmcs_write(GUEST_AR_LDTR, 0x82);
+		vmcs_write(GUEST_SEL_GS, KERNEL_DATA_SEG);
+		vmcs_write(GUEST_BASE_GS, 0);
+		vmcs_write(GUEST_LIMIT_GS, 0xFFFFFFFF);
+		vmcs_write(GUEST_AR_GS, 0xc093);
+
+		vmcs_write(GUEST_SEL_LDTR, 0);
+		vmcs_write(GUEST_BASE_LDTR, 0);
+		vmcs_write(GUEST_LIMIT_LDTR, 0xffff);
+		vmcs_write(GUEST_AR_LDTR, 0x82);
+	}
+
+	vmcs_write(GUEST_SEL_TR, 0x80);    // TSS_MAIN
+	vmcs_write(GUEST_BASE_TR, (0x9000 + 0x80));
+	vmcs_write(GUEST_LIMIT_TR, 0x7ff); // tss_descr.limit
 	vmcs_write(GUEST_AR_TR, 0x8b);
 
 
@@ -350,7 +354,7 @@ void vmcs_init () {
 
 	init_vmcs_ctrl();
 	init_vmcs_host();
-
+	init_vmcs_guest();
 }
 
 void virt_enable () {

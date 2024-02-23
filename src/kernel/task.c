@@ -57,6 +57,17 @@ uint32_t task1_tss[] = {
     APP_DATA_SEG, APP_CODE_SEG, APP_DATA_SEG, APP_DATA_SEG, APP_DATA_SEG, APP_DATA_SEG, 0x0, 0x0,
 };
 
+uint32_t kernel_tss[] = {
+    // prelink, esp0,ss0, esp1,ss1, esp2,ss2
+    0, (uint32_t)0x7c00, KERNEL_DATA_SEG, 0x0, 0x0, 0x0, 0x0,
+    // cr3, eip, eflags,  eax, ecx, edx, ebx, 
+    0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 
+    // esp, ebp, esi, edi,
+    0x0, 0x0, 0x0, 0x0,
+    // es, cs, ss, ds, fs, gs, ldt, iomap
+    0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+};
+
 void task_init () {
 
     gdt_table[5].limit_low = 0x86; //task 0 tss  TASK_0_TSS
@@ -75,4 +86,14 @@ void task_init () {
     gdt_table[6].access = 0xe9;
     gdt_table[6].granularity = 0x0; 
     gdt_table[6].base_high = ((uint32_t)task1_tss >> 24) & 0xff;
+
+
+    // 内核 任务
+    gdt_table[16].limit_low = 0x86; 
+    gdt_table[16].base_low = (uint32_t)kernel_tss & 0xffff;  // 低16
+
+    gdt_table[16].base_middle = ((uint32_t)kernel_tss >> 16) & 0xff;
+    gdt_table[16].access = 0b10001001;  //dpl = 0
+    gdt_table[16].granularity = 0x0; 
+    gdt_table[16].base_high = ((uint32_t)kernel_tss >> 24) & 0xff;
 }

@@ -15,5 +15,5 @@ void init() {
     irq_init();
     mem_init();
     task_init();
-    // virt_enable();
+    virt_enable();
 }

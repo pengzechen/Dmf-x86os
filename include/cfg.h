@@ -11,6 +11,8 @@
 #define TASK_0_TSS          (5 * 8)
 #define TASK_1_TSS          (6 * 8)
 
+#define KERNEL_TSS          (16 * 8)
+
 #define OS_ALIGN(n) __attribute__((aligned(n)))
 
 // 00009000 g     O .data	00000800 gdt_table
