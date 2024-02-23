@@ -12,6 +12,20 @@ extern void phys_alloc_show();
 extern gdt_table_t * gdt_table;
 extern idt_entry_t * idt_table;
 
+
+union vmx_basic basic;
+uint64_t * vmxon_region OS_ALIGN(4096) = (void*)0;
+vmcs_t   * vmcs         OS_ALIGN(4096) = (void*)0;
+
+void * guest_stack;
+void * guest_syscall_stack;
+
+bool launched;
+static int guest_finished;
+static int in_guest;
+uint64_t hypercall_field;
+
+
 bool is_vmx_supported() {
 	unsigned int eax, ebx, ecx, edx;
 	cpuid(0x1, &eax, &ebx, &ecx, &edx);
@@ -37,16 +51,6 @@ bool is_vmx_supported() {
 
 	return true;
 }
-
-
-union vmx_basic basic;
-uint64_t * vmxon_region OS_ALIGN(4096) = (void*)0;
-vmcs_t   * vmcs         OS_ALIGN(4096) = (void*)0;
-
-void * guest_stack;
-void * guest_syscall_stack;
-
-
 
 void init_vmx () {
 	uint64_t fix_cr0_set, fix_cr0_clr;
@@ -75,14 +79,13 @@ void init_vmx () {
 	write_cr0(cr0_2);
 	write_cr4(cr4_2);
 
+	guest_stack = malloc(4096);
+	guest_syscall_stack = malloc(4096);
+
 	*(uint32_t*)(vmxon_region) = basic.revision;
 }
 
-
 /* ---------------------------- 内联汇编函数定义区 -------------------------------*/
-
-#define X86_EFLAGS_CF    0x00000001
-#define X86_EFLAGS_ZF    0x00000040
 
 static inline bool vmx_on(void)
 {
@@ -113,6 +116,13 @@ static inline int make_vmcs_current(vmcs_t *vmcs)
 	return ret;
 }
 
+static inline uint64_t vmcs_read(enum Encoding enc)
+{
+	uint64_t val;
+	asm volatile ("vmread %1, %0" : "=rm" (val) : "r" ((uint64_t)enc) : "cc");
+	return val;
+}
+
 static inline int vmcs_write(enum Encoding enc, uint32_t val)
 {
 	bool ret;
@@ -130,6 +140,16 @@ static inline uint32_t read_cr3(void)
     uint32_t val;
     asm volatile ("mov %%cr3, %0" : "=r"(val) : : "memory");
     return val;
+}
+
+static inline int vmx_off(void)
+{
+	bool ret;
+	uint64_t rflags = read_rflags() | X86_EFLAGS_CF | X86_EFLAGS_ZF;
+
+	asm volatile("push %1; popf; vmxoff; setbe %0\n\t"
+		     : "=q"(ret) : "q" (rflags) : "cc");
+	return ret;
 }
 
 /* ---------------------------- 内联汇编函数定义区 -------------------------------*/
@@ -168,6 +188,37 @@ uint32_t ctrl_cpu[2];
 // 上下文保护
 struct regs regs;
 
+#define SAVE_GPR_C				    \
+	"xchg %%eax, regs+0x00\n\t"		\
+	"xchg %%ebx, regs+0x04\n\t"		\
+	"xchg %%ecx, regs+0x08\n\t"		\
+	"xchg %%edx, regs+0x0c\n\t"		\
+	"xchg %%ebp, regs+0x10\n\t"		\
+	"xchg %%esi, regs+0x14\n\t"		\
+	"xchg %%edi, regs+0x18\n\t"		\
+
+#define LOAD_GPR_C	SAVE_GPR_C
+
+
+
+
+extern void entry_sysenter();
+extern void guest_entry();
+extern void vmx_return();
+
+void guest_main() {
+	printf("this is guest main");
+}
+
+/* This function can only be called in guest */
+void __attribute__((__used__)) hypercall(uint32_t hypercall_no)
+{
+	uint64_t val = 0;
+	val = (hypercall_no & HYPERCALL_MASK) | HYPERCALL_BIT;
+	hypercall_field = val;
+	asm volatile("vmcall\n\t");
+}
+
 // nochange
 static void init_vmcs_ctrl(void)
 {
@@ -185,19 +236,13 @@ static void init_vmcs_ctrl(void)
 	vmcs_write(VPID, ++vpid_cnt);
 }
 
-extern void entry_sysenter();
-extern void guest_entry();
-extern void vmx_return();
-
-void vm_syscall_handler (uint32_t no) {
-	printf("no: %x", no);
-}
-
 static void init_vmcs_host(void)
 {
 	/* 26.2 CHECKS ON VMX CONTROLS AND HOST-STATE AREA */
 	/* 26.2.1.2 */
-	vmcs_write(HOST_EFER, rdmsr(MSR_EFER));
+	// RDMSR MSR_EFER: EFER MSR is not supported !
+	// RDMSR: Unknown register 0xc0000080
+	// vmcs_write(HOST_EFER, rdmsr(MSR_EFER));
 
 	/* 26.2.1.3 */
 	vmcs_write(ENT_CONTROLS, ctrl_enter);
@@ -296,14 +341,16 @@ static void init_vmcs_guest(void)
 	vmcs_write(GUEST_SYSENTER_ESP, (uint32_t)(guest_syscall_stack + PAGE_SIZE - 1));
 	vmcs_write(GUEST_SYSENTER_EIP, (uint32_t)(&entry_sysenter));
 	vmcs_write(GUEST_DR7, 0);
-	vmcs_write(GUEST_EFER, rdmsr(MSR_EFER));
+
+	// RDMSR MSR_EFER: EFER MSR is not supported !
+	// vmcs_write(GUEST_EFER, rdmsr(MSR_EFER));
 
 	// /* 26.3.1.3 */
 	vmcs_write(GUEST_BASE_GDTR, (uint32_t)gdt_table);   // gdt64_desc.base 全局gdt
 	vmcs_write(GUEST_BASE_IDTR, (uint32_t)idt_table);   // idt_descr.base  全局idt
 
-	vmcs_write(GUEST_LIMIT_GDTR, 0x7ff);  // gdt64_desc.limit   2047
-	vmcs_write(GUEST_LIMIT_IDTR, 0x7ff);  // idt_descr.limit    2047
+	vmcs_write(GUEST_LIMIT_GDTR, 0x3ff);  // gdt64_desc.limit   2047
+	vmcs_write(GUEST_LIMIT_IDTR, 0x3ff);  // idt_descr.limit    2047
 
 	// /* 26.3.1.4 */
 	vmcs_write(GUEST_RIP, (uint32_t)(&guest_entry));
@@ -314,8 +361,6 @@ static void init_vmcs_guest(void)
 	vmcs_write(GUEST_ACTV_STATE, ACTV_ACTIVE);
 	vmcs_write(GUEST_INTR_STATE, 0);
 }
-
-
 
 void vmcs_init () {
 		
@@ -357,6 +402,224 @@ void vmcs_init () {
 	init_vmcs_guest();
 }
 
+
+/*-------------------  准备阶段完成  ------------------*/
+
+void print_vmexit_info()
+{
+	uint64_t guest_eip, guest_esp;
+	uint32_t reason = vmcs_read(EXI_REASON) & 0xff;
+	uint32_t exit_qual = vmcs_read(EXI_QUALIFICATION);
+	guest_eip = vmcs_read(GUEST_RIP);
+	guest_esp = vmcs_read(GUEST_RSP);
+	printf("VMEXIT info:");
+	printf("vmexit reason = %d", reason);
+	printf("exit qualification = %#x", exit_qual);
+	printf("Bit 31 of reason = %llx", (vmcs_read(EXI_REASON) >> 31) & 1);
+	printf("guest_eip = %#llx", guest_eip);
+	printf("EAX=%#x    EBX=%#x    ECX=%#x    EDX=%#x",
+		regs.eax, regs.ebx, regs.ecx, regs.edx);
+	printf("ESP=%#llx    EBP=%#x    ESI=%#x    EDI=%#x",
+		guest_esp, regs.ebp, regs.esi, regs.edi);
+}
+
+void print_vmentry_failure_info(struct vmentry_failure *failure) {
+	if (failure->early) {
+		printf("Early %s failure: ", failure->instr);
+		switch (failure->flags & VMX_ENTRY_FLAGS) {
+		case X86_EFLAGS_CF:
+			printf("current-VMCS pointer is not valid.\n");
+			break;
+		case X86_EFLAGS_ZF:
+			printf("error number is %lld. See Intel 30.4.\n",
+			       vmcs_read(VMX_INST_ERROR));
+			break;
+		default:
+			printf("unexpected flags %x!\n", failure->flags);
+		}
+	} else {
+		uint64_t reason = vmcs_read(EXI_REASON);
+		uint64_t qual = vmcs_read(EXI_QUALIFICATION);
+
+		printf("Non-early %s failure (reason=%#llx, qual=%#llx): ",
+			failure->instr, reason, qual);
+
+		switch (reason & 0xff) {
+		case VMX_FAIL_STATE:
+			printf("invalid guest state\n");
+			break;
+		case VMX_FAIL_MSR:
+			printf("MSR loading\n");
+			break;
+		case VMX_FAIL_MCHECK:
+			printf("machine-check event\n");
+			break;
+		default:
+			printf("unexpected basic exit reason %lld\n",
+			       reason & 0xff);
+		}
+
+		if (!(reason & VMX_ENTRY_FAILURE))
+			printf("\tVMX_ENTRY_FAILURE BIT NOT SET!\n");
+
+		if (reason & 0x7fff0000)
+			printf("\tRESERVED BITS SET!\n");
+	}
+}
+
+
+
+static bool is_hypercall(void)
+{
+	uint32_t reason, hyper_bit;
+
+	reason = vmcs_read(EXI_REASON) & 0xff;
+	hyper_bit = hypercall_field & HYPERCALL_BIT;
+	if (reason == VMX_VMCALL && hyper_bit)
+		return true;
+	return false;
+}
+
+static int handle_hypercall(void)
+{
+	uint32_t hypercall_no;
+
+	hypercall_no = hypercall_field & HYPERCALL_MASK;
+	hypercall_field = 0;
+	switch (hypercall_no) {
+	case HYPERCALL_VMEXIT:
+		return VMX_VMEXIT;
+	case HYPERCALL_VMABORT:
+		return VMX_VMABORT;
+	case HYPERCALL_VMSKIP:
+		return VMX_VMSKIP;
+	default:
+		printf("ERROR : Invalid hypercall number : %d", hypercall_no);
+	}
+	return VMX_EXIT;
+}
+
+void vm_syscall_handler (uint32_t no) {  printf("no: %x", no);  }
+
+static int exit_handler(void)
+{
+	int ret;
+
+	regs.eflags = vmcs_read(GUEST_RFLAGS);
+
+	if (is_hypercall()) {
+		ret = handle_hypercall();
+	} else {
+		print_vmexit_info();
+		ret = 2;
+	}
+
+	vmcs_write(GUEST_RFLAGS, regs.eflags);
+
+	return ret;
+}
+
+
+/*
+ *  Called if vmlaunch or vmresume fails.
+ *	@early    - failure due to "VMX controls and host-state area" (26.2)
+ *	@vmlaunch - was this a vmlaunch or vmresume
+ *	@rflags   - host rflags
+ */
+static int entry_failure_handler(struct vmentry_failure *failure)
+{
+	print_vmexit_info();
+	return VMX_EXIT;
+}
+
+
+/*
+ * Tries to enter the guest. 
+ * Returns true if entry succeeded. Otherwise, populates @failure.
+ */
+
+static bool vmx_enter_guest(struct vmentry_failure *failure)
+{
+	failure->early = 0;
+
+	in_guest = 1;
+	asm volatile (
+		"mov %[HOST_RSP], %%edi\n\t"
+		"vmwrite %%esp, %%edi\n\t"
+		LOAD_GPR_C
+		"cmpb $0, %[launched]\n\t"
+		"jne 1f\n\t"
+		"vmlaunch\n\t"
+		"jmp 2f\n\t"
+		"1: "
+		"vmresume\n\t"
+		"2: "
+		SAVE_GPR_C
+		"pushf\n\t"
+		"pop %%edi\n\t"
+		"mov %%edi, %[failure_flags]\n\t"
+		"movl $1, %[failure_early]\n\t"
+		"jmp 3f\n\t"
+		"vmx_return:\n\t"
+		SAVE_GPR_C
+		"3: \n\t"
+		: [failure_early]"+m"(failure->early),
+		  [failure_flags]"=m"(failure->flags)
+		: [launched]"m"(launched), [HOST_RSP]"i"(HOST_RSP)
+		: "edi", "memory", "cc"
+	);
+	in_guest = 0;
+
+	failure->vmlaunch = !launched;
+	failure->instr = launched ? "vmresume" : "vmlaunch";
+
+	return !failure->early && !(vmcs_read(EXI_REASON) & VMX_ENTRY_FAILURE);
+}
+
+
+static int vmx_run(void)
+{
+	while (1) {
+		uint32_t ret;
+		bool entered;
+		struct vmentry_failure failure;
+
+		entered = vmx_enter_guest(&failure);
+
+		if (entered) {
+			/*
+			 * VMCS isn't in "launched" state if there's been any
+			 * entry failure (early or otherwise).
+			 */
+			launched = 1;
+			ret = exit_handler();
+		} else {
+			ret = entry_failure_handler(&failure);
+		}
+
+		switch (ret) {
+			case VMX_RESUME:
+				continue;
+			case VMX_VMEXIT:
+				guest_finished = 1;
+				return 0;
+			case VMX_EXIT:
+				break;
+			default:
+				printf("ERROR : Invalid %s_handler return val %d", entered ? "exit" : "entry_failure", ret);
+				break;
+		}
+
+		if (entered)
+			print_vmexit_info();
+		else
+			print_vmentry_failure_info(&failure);
+		break;
+	}
+
+	printf("abort");
+}
+
 void virt_enable () {
 
 	if (!is_vmx_supported()) {
@@ -376,6 +639,14 @@ void virt_enable () {
 	}
 
 	vmcs_init();
+
+	vmx_run();
+
+
+	if (vmx_off()) {
+		printf("Error: %s : vmxoff failed", __func__);
+		return;
+	}
 
 }
 

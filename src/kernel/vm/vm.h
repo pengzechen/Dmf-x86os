@@ -323,11 +323,22 @@ struct regs {
 	uint32_t ecx;
 	uint32_t edx;
 	uint32_t ebx;
-	uint32_t ce2;
+	uint32_t cr2;
 	uint32_t ebp;
 	uint32_t esi;
 	uint32_t edi;
 	uint32_t eflags;
+};
+
+struct vmentry_failure {
+	/* Did a vmlaunch or vmresume fail? */
+	bool vmlaunch;
+	/* Instruction mnemonic (for convenience). */
+	const char *instr;
+	/* Did the instruction return right away, or did we jump to HOST_RIP? */
+	bool early;
+	/* Contents of [re]flags after failed entry. */
+	uint32_t flags;
 };
 
 
@@ -356,9 +367,111 @@ extern bool is_vmx_supported();
 #define X86_CR4_PKE    0x00400000
 
 
+#define X86_EFLAGS_CF    0x00000001
+#define X86_EFLAGS_FIXED 0x00000002
+#define X86_EFLAGS_PF    0x00000004
+#define X86_EFLAGS_AF    0x00000010
+#define X86_EFLAGS_ZF    0x00000040
+#define X86_EFLAGS_SF    0x00000080
+#define X86_EFLAGS_TF    0x00000100
+#define X86_EFLAGS_IF    0x00000200
+#define X86_EFLAGS_DF    0x00000400
+#define X86_EFLAGS_OF    0x00000800
+#define X86_EFLAGS_IOPL  0x00003000
+#define X86_EFLAGS_NT    0x00004000
+#define X86_EFLAGS_AC    0x00040000
+
 #define ACTV_ACTIVE		0
 #define ACTV_HLT		1
 
 
+#define X86_EFLAGS_CF    0x00000001
+#define X86_EFLAGS_ZF    0x00000040
+
+
+#define VMX_ENTRY_FAILURE	(1ul << 31)
+#define VMX_ENTRY_FLAGS		(X86_EFLAGS_CF | X86_EFLAGS_PF | X86_EFLAGS_AF | \
+				 X86_EFLAGS_ZF | X86_EFLAGS_SF | X86_EFLAGS_OF)
+
+enum Reason {
+	VMX_EXC_NMI		= 0,
+	VMX_EXTINT		= 1,
+	VMX_TRIPLE_FAULT	= 2,
+	VMX_INIT		= 3,
+	VMX_SIPI		= 4,
+	VMX_SMI_IO		= 5,
+	VMX_SMI_OTHER		= 6,
+	VMX_INTR_WINDOW		= 7,
+	VMX_NMI_WINDOW		= 8,
+	VMX_TASK_SWITCH		= 9,
+	VMX_CPUID		= 10,
+	VMX_GETSEC		= 11,
+	VMX_HLT			= 12,
+	VMX_INVD		= 13,
+	VMX_INVLPG		= 14,
+	VMX_RDPMC		= 15,
+	VMX_RDTSC		= 16,
+	VMX_RSM			= 17,
+	VMX_VMCALL		= 18,
+	VMX_VMCLEAR		= 19,
+	VMX_VMLAUNCH		= 20,
+	VMX_VMPTRLD		= 21,
+	VMX_VMPTRST		= 22,
+	VMX_VMREAD		= 23,
+	VMX_VMRESUME		= 24,
+	VMX_VMWRITE		= 25,
+	VMX_VMXOFF		= 26,
+	VMX_VMXON		= 27,
+	VMX_CR			= 28,
+	VMX_DR			= 29,
+	VMX_IO			= 30,
+	VMX_RDMSR		= 31,
+	VMX_WRMSR		= 32,
+	VMX_FAIL_STATE		= 33,
+	VMX_FAIL_MSR		= 34,
+	VMX_MWAIT		= 36,
+	VMX_MTF			= 37,
+	VMX_MONITOR		= 39,
+	VMX_PAUSE		= 40,
+	VMX_FAIL_MCHECK		= 41,
+	VMX_TPR_THRESHOLD	= 43,
+	VMX_APIC_ACCESS		= 44,
+	VMX_EOI_INDUCED		= 45,
+	VMX_GDTR_IDTR		= 46,
+	VMX_LDTR_TR		= 47,
+	VMX_EPT_VIOLATION	= 48,
+	VMX_EPT_MISCONFIG	= 49,
+	VMX_INVEPT		= 50,
+	VMX_PREEMPT		= 52,
+	VMX_INVVPID		= 53,
+	VMX_WBINVD		= 54,
+	VMX_XSETBV		= 55,
+	VMX_APIC_WRITE		= 56,
+	VMX_RDRAND		= 57,
+	VMX_INVPCID		= 58,
+	VMX_VMFUNC		= 59,
+	VMX_RDSEED		= 61,
+	VMX_PML_FULL		= 62,
+	VMX_XSAVES		= 63,
+	VMX_XRSTORS		= 64,
+};
+
+
+#define HYPERCALL_MASK		0xFFF
+#define HYPERCALL_BIT		(1ul << 12)
+
+
+#define VMX_START		0
+#define VMX_VMEXIT		1
+#define VMX_EXIT		2
+#define VMX_RESUME		3
+#define VMX_VMABORT		4
+#define VMX_VMSKIP		5
+
+#define HYPERCALL_BIT		(1ul << 12)
+#define HYPERCALL_MASK		0xFFF
+#define HYPERCALL_VMEXIT	0x1
+#define HYPERCALL_VMABORT	0x2
+#define HYPERCALL_VMSKIP	0x3
 
 #endif // VM_H
