@@ -56,10 +56,6 @@ void init_vmx () {
 	uint64_t fix_cr0_set, fix_cr0_clr;
 	uint64_t fix_cr4_set, fix_cr4_clr;
 
-	printf("sizeof fix_cr0_set: %d", sizeof(fix_cr0_set));		// sizeof Byte
-	printf("sizeof vmxon_region: %d", sizeof(vmxon_region));
-	printf("sizeof guest_stack: %d", sizeof(guest_stack));
-
 	vmxon_region = (void*)0x201000;			// 4k algin
 	memset(vmxon_region, 0, 4096);
 
@@ -74,13 +70,15 @@ void init_vmx () {
 	uint32_t cr4 = read_cr4();
 
 	uint32_t cr0_2 = ( cr0 & fix_cr0_clr) | fix_cr0_set ;
-	uint32_t cr4_2 = ( cr4 & fix_cr4_clr) | fix_cr4_set ;//| X86_CR4_VMXE ;
+	uint32_t cr4_2 = ( cr4 & fix_cr4_clr) | fix_cr4_set | X86_CR4_VMXE ;
 	
 	write_cr0(cr0_2);
 	write_cr4(cr4_2);
 
 	guest_stack = malloc(4096);
 	guest_syscall_stack = malloc(4096);
+	memset(guest_stack, 0, PAGE_SIZE);
+	memset(guest_syscall_stack, 0, PAGE_SIZE);
 
 	*(uint32_t*)(vmxon_region) = basic.revision;
 }
@@ -133,13 +131,6 @@ static inline int vmcs_write(enum Encoding enc, uint32_t val)
 	}
 	return ret;	// vmwrite指令执行失败，则CF标志位会被设置为1
 				// 如果CF标志位和ZF标志位中的任意一个被设置，则将目标操作数设置为1，否则设置为0。
-}
-
-static inline uint32_t read_cr3(void)
-{
-    uint32_t val;
-    asm volatile ("mov %%cr3, %0" : "=r"(val) : : "memory");
-    return val;
 }
 
 static inline int vmx_off(void)
@@ -288,6 +279,15 @@ static void init_vmcs_guest(void)
 	guest_cr3 = read_cr3();
 	guest_cr4 = read_cr4();
 
+	if (ctrl_enter & ENT_GUEST_64) {
+		guest_cr0 |= X86_CR0_PG;
+		guest_cr4 |= X86_CR4_PAE;
+	}
+	if ((ctrl_enter & ENT_GUEST_64) == 0)
+		guest_cr4 &= (~X86_CR4_PCIDE);
+	if (guest_cr0 & X86_CR0_PG)
+		guest_cr0 |= X86_CR0_PE;
+
 	vmcs_write(GUEST_CR0, guest_cr0);
 	vmcs_write(GUEST_CR3, guest_cr3);
 	vmcs_write(GUEST_CR4, guest_cr4);
@@ -349,8 +349,8 @@ static void init_vmcs_guest(void)
 	vmcs_write(GUEST_BASE_GDTR, (uint32_t)gdt_table);   // gdt64_desc.base 全局gdt
 	vmcs_write(GUEST_BASE_IDTR, (uint32_t)idt_table);   // idt_descr.base  全局idt
 
-	vmcs_write(GUEST_LIMIT_GDTR, 0x3ff);  // gdt64_desc.limit   2047
-	vmcs_write(GUEST_LIMIT_IDTR, 0x3ff);  // idt_descr.limit    2047
+	vmcs_write(GUEST_LIMIT_GDTR, 0xffff);  // gdt64_desc.limit   2047
+	vmcs_write(GUEST_LIMIT_IDTR, 0xffff);  // idt_descr.limit    2047
 
 	// /* 26.3.1.4 */
 	vmcs_write(GUEST_RIP, (uint32_t)(&guest_entry));
@@ -573,8 +573,12 @@ static bool vmx_enter_guest(struct vmentry_failure *failure)
 	failure->vmlaunch = !launched;
 	failure->instr = launched ? "vmresume" : "vmlaunch";
 
-	return !failure->early && !(vmcs_read(EXI_REASON) & VMX_ENTRY_FAILURE);
+	bool fail_early = false;
+	uint64_t reason = vmcs_read(EXI_REASON);
+
+	return !fail_early && !(reason & VMX_ENTRY_FAILURE);
 }
+
 
 
 static int vmx_run(void)

@@ -396,7 +396,7 @@ extern bool is_vmx_supported();
 enum Reason {
 	VMX_EXC_NMI		= 0,
 	VMX_EXTINT		= 1,
-	VMX_TRIPLE_FAULT	= 2,
+	VMX_TRIPLE_FAULT	= 2,  // 客户机发生错误
 	VMX_INIT		= 3,
 	VMX_SIPI		= 4,
 	VMX_SMI_IO		= 5,

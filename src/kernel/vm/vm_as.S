@@ -32,3 +32,17 @@ guest_entry:
     call guest_main
     mov $1, %edi
     call hypercall
+
+
+.global vmx_return1
+
+vmx_return1:
+
+    xchg %eax, regs+0x00
+    xchg %ebx, regs+0x04
+    xchg %ecx, regs+0x08
+    xchg %edx, regs+0x0c
+    xchg %ebp, regs+0x10
+    xchg %esi, regs+0x14
+    xchg %edi, regs+0x18
+    

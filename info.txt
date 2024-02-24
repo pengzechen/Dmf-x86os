@@ -1,0 +1,7 @@
+
+00020435973e[CPU0  ] load_seg_reg(ES, 0x38f1): invalid segment
+00020435973e[CPU0  ] interrupt(): gate descriptor is not valid sys seg (vector=0x0d)   //general_protection
+00020435973e[CPU0  ] interrupt(): gate descriptor is not valid sys seg (vector=0x08)   //double_fault
+
+interrupt gate descriptor is not valid system descriptor
+i.e. it is invalid (IDT was never set up) or it is not-system descriptor (valid code or data descriptor).
