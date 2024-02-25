@@ -9,11 +9,12 @@ mouse: enabled=0
 # display_library: sdl 
 # display_library: x, options="gui_debug"
 
-gdbstub:enabled=1,port=1234,text_base=0,data_base=0,bss_base=0
+gdbstub:enabled=1, port=1234, text_base=0, data_base=0, bss_base=0
 magic_break: enabled=1
+
 boot: disk
-ata0: enabled=1,ioaddr1=0x1f0,ioaddr2=0x3f0,irq=14
-ata0-master: type=disk,path="build/disk.img", mode=flat
+ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
+ata0-master: type=disk, path="build/disk.img", mode=flat
 
 # floppya: 1_44="build/disk.img", status=inserted
 # boot: floppy

@@ -224,7 +224,9 @@ static void init_vmcs_ctrl(void)
 		vmcs_write(CPU_EXEC_CTRL1, ctrl_cpu[1]);
 	}
 	vmcs_write(CR3_TARGET_COUNT, 0);
-	vmcs_write(VPID, ++vpid_cnt);
+	
+	// 00020472070e[CPU0  ] VMWRITE: not supported field 0x00000000
+	// vmcs_write(VPID, ++vpid_cnt);
 }
 
 static void init_vmcs_host(void)
@@ -332,7 +334,7 @@ static void init_vmcs_guest(void)
 
 	vmcs_write(GUEST_SEL_TR, 0x80);    // TSS_MAIN
 	vmcs_write(GUEST_BASE_TR, (0x9000 + 0x80));
-	vmcs_write(GUEST_LIMIT_TR, 0x7ff); // tss_descr.limit
+	vmcs_write(GUEST_LIMIT_TR, 0xffff); // tss_descr.limit
 	vmcs_write(GUEST_AR_TR, 0x8b);
 
 

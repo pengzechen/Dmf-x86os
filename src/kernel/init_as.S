@@ -2,7 +2,7 @@
 
 .global _start
 .extern init, task_0_entry, cpushow
-
+.extern virt_enable
 _start:
     call init
 
@@ -10,6 +10,8 @@ _start:
 
     mov $KERNEL_TSS, %ax
     ltr %ax
+
+    call virt_enable
 
     jmp to_task_0
 

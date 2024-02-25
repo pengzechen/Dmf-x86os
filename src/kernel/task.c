@@ -65,7 +65,7 @@ uint32_t kernel_tss[] = {
     // esp, ebp, esi, edi,
     0x0, 0x0, 0x0, 0x0,
     // es, cs, ss, ds, fs, gs, ldt, iomap
-    0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
+    KERNEL_DATA_SEG, KERNEL_CODE_SEG, KERNEL_DATA_SEG, KERNEL_DATA_SEG, KERNEL_DATA_SEG, KERNEL_DATA_SEG, 0x0, 0x0,
 };
 
 void task_init () {
@@ -89,7 +89,7 @@ void task_init () {
 
 
     // 内核 任务
-    gdt_table[16].limit_low = 0x86; 
+    gdt_table[16].limit_low = 0xffff; 
     gdt_table[16].base_low = (uint32_t)kernel_tss & 0xffff;  // 低16
 
     gdt_table[16].base_middle = ((uint32_t)kernel_tss >> 16) & 0xff;
