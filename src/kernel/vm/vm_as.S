@@ -1,4 +1,4 @@
-
+#include "cfg.h"
 .globl	entry_sysenter, guest_entry
 .extern regs, vm_syscall_handler
 

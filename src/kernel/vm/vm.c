@@ -340,7 +340,7 @@ static void init_vmcs_guest(void)
 
 
 	vmcs_write(GUEST_SYSENTER_CS,  KERNEL_CODE_SEG);
-	vmcs_write(GUEST_SYSENTER_ESP, (uint32_t)(guest_syscall_stack + PAGE_SIZE - 1));
+	vmcs_write(GUEST_SYSENTER_ESP, (uint32_t)(guest_syscall_stack + PAGE_SIZE));
 	vmcs_write(GUEST_SYSENTER_EIP, (uint32_t)(&entry_sysenter));
 	vmcs_write(GUEST_DR7, 0);
 
@@ -356,7 +356,7 @@ static void init_vmcs_guest(void)
 
 	// /* 26.3.1.4 */
 	vmcs_write(GUEST_RIP, (uint32_t)(&guest_entry));
-	vmcs_write(GUEST_RSP, (uint32_t)(guest_stack + PAGE_SIZE - 1));
+	vmcs_write(GUEST_RSP, (uint32_t)(guest_stack + PAGE_SIZE));
 	vmcs_write(GUEST_RFLAGS, 0x2);
 
 	// /* 26.3.1.5 */

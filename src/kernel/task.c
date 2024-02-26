@@ -65,7 +65,18 @@ uint32_t kernel_tss[] = {
     // esp, ebp, esi, edi,
     0x0, 0x0, 0x0, 0x0,
     // es, cs, ss, ds, fs, gs, ldt, iomap
-    KERNEL_DATA_SEG, KERNEL_CODE_SEG, KERNEL_DATA_SEG, KERNEL_DATA_SEG, KERNEL_DATA_SEG, KERNEL_DATA_SEG, 0x0, 0x0,
+    0x0, KERNEL_CODE_SEG, KERNEL_DATA_SEG, 0x0, 0x0, 0x0, 0x0, 0x0,
+};
+
+uint32_t kernel_tss2[] = {
+    // prelink, esp0,ss0, esp1,ss1, esp2,ss2
+    0, (uint32_t)0x6c00, KERNEL_DATA_SEG, 0x0, 0x0, 0x0, 0x0,
+    // cr3, eip, eflags,  eax, ecx, edx, ebx, 
+    0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 
+    // esp, ebp, esi, edi,
+    0x0, 0x0, 0x0, 0x0,
+    // es, cs, ss, ds, fs, gs, ldt, iomap
+    0x0, KERNEL_CODE_SEG, KERNEL_DATA_SEG, 0x0, 0x0, 0x0, 0x0, 0x0,
 };
 
 void task_init () {
@@ -96,4 +107,13 @@ void task_init () {
     gdt_table[16].access = 0b10001001;  //dpl = 0
     gdt_table[16].granularity = 0x0; 
     gdt_table[16].base_high = ((uint32_t)kernel_tss >> 24) & 0xff;
+
+    // 内核 任务
+    gdt_table[17].limit_low = 0xffff; 
+    gdt_table[17].base_low = (uint32_t)kernel_tss2 & 0xffff;  // 低16
+
+    gdt_table[17].base_middle = ((uint32_t)kernel_tss2 >> 16) & 0xff;
+    gdt_table[17].access = 0b10001001;  //dpl = 0
+    gdt_table[17].granularity = 0x0; 
+    gdt_table[17].base_high = ((uint32_t)kernel_tss2 >> 24) & 0xff;
 }

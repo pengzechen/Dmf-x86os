@@ -6,7 +6,7 @@
 _start:
     call init
 
-    call cpushow
+    // call cpushow
 
     mov $KERNEL_TSS, %ax
     ltr %ax
