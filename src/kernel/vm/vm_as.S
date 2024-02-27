@@ -29,8 +29,8 @@ entry_sysenter:
 .text
 .extern guest_main, hypercall
 guest_entry:
-    mov $2, %eax
-    push $4
+    # mov $2, %eax
+    # push $4
     # cpuid   # 这个指令成功触发 exit reason 10
     call guest_main
     mov $1, %edi

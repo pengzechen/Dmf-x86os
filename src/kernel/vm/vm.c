@@ -136,10 +136,10 @@ static inline int vmcs_write(enum Encoding enc, uint32_t val)
 static inline int vmx_off(void)
 {
 	bool ret;
-	uint64_t rflags = read_rflags() | X86_EFLAGS_CF | X86_EFLAGS_ZF;
+	uint32_t eflags = read_rflags() | X86_EFLAGS_CF | X86_EFLAGS_ZF;
 
 	asm volatile("push %1; popf; vmxoff; setbe %0\n\t"
-		     : "=q"(ret) : "q" (rflags) : "cc");
+		     : "=q"(ret) : "q" (eflags) : "cc");
 	return ret;
 }
 
@@ -622,8 +622,6 @@ static int vmx_run(void)
 			print_vmentry_failure_info(&failure);
 		break;
 	}
-
-	printf("abort");
 }
 
 void virt_enable () {
