@@ -299,7 +299,7 @@ static void init_vmcs_guest(void)
 		vmcs_write(GUEST_SEL_CS, KERNEL_CODE_SEG);
 		vmcs_write(GUEST_BASE_CS, 0);
 		vmcs_write(GUEST_LIMIT_CS, 0xFFFFFFFF);
-		vmcs_write(GUEST_AR_CS, 0xa09b);
+		vmcs_write(GUEST_AR_CS, 0xc09b);
 
 		vmcs_write(GUEST_SEL_SS, KERNEL_DATA_SEG);
 		vmcs_write(GUEST_BASE_SS, 0);
@@ -351,8 +351,8 @@ static void init_vmcs_guest(void)
 	vmcs_write(GUEST_BASE_GDTR, (uint32_t)gdt_table);   // gdt64_desc.base 全局gdt
 	vmcs_write(GUEST_BASE_IDTR, (uint32_t)idt_table);   // idt_descr.base  全局idt
 
-	vmcs_write(GUEST_LIMIT_GDTR, 0xffff);  // gdt64_desc.limit   2047
-	vmcs_write(GUEST_LIMIT_IDTR, 0xffff);  // idt_descr.limit    2047
+	vmcs_write(GUEST_LIMIT_GDTR, 0x7ff);  // gdt64_desc.limit   2047
+	vmcs_write(GUEST_LIMIT_IDTR, 0x7ff);  // idt_descr.limit    2047
 
 	// /* 26.3.1.4 */
 	vmcs_write(GUEST_RIP, (uint32_t)(&guest_entry));
