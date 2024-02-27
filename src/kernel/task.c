@@ -108,12 +108,4 @@ void task_init () {
     gdt_table[16].granularity = 0x0; 
     gdt_table[16].base_high = ((uint32_t)kernel_tss >> 24) & 0xff;
 
-    // 内核 任务
-    gdt_table[17].limit_low = 0xffff; 
-    gdt_table[17].base_low = (uint32_t)kernel_tss2 & 0xffff;  // 低16
-
-    gdt_table[17].base_middle = ((uint32_t)kernel_tss2 >> 16) & 0xff;
-    gdt_table[17].access = 0b10001001;  //dpl = 0
-    gdt_table[17].granularity = 0x0; 
-    gdt_table[17].base_high = ((uint32_t)kernel_tss2 >> 24) & 0xff;
 }

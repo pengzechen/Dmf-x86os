@@ -1,7 +1,7 @@
 #include "cfg.h"
 .globl	entry_sysenter, guest_entry
 .extern regs, vm_syscall_handler
-
+.text
 entry_sysenter:
 
     xchg %eax, regs+0x00
@@ -26,7 +26,7 @@ entry_sysenter:
 
 	vmresume
 
-
+.text
 .extern guest_main, hypercall
 guest_entry:
     mov $2, %eax

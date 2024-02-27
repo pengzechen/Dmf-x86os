@@ -5,3 +5,18 @@
 
 interrupt gate descriptor is not valid system descriptor
 i.e. it is invalid (IDT was never set up) or it is not-system descriptor (valid code or data descriptor).
+
+
+// gdb
+./configure --prefix=/home/ajax/bochs --enable-vmx \
+            --enable-gdb-stub --enable-disasm --enable-iodebug \
+            --enable-x86-debugger --with-x --with-x11 LDFLAGS='-pthread'
+
+// debugger
+./configure --prefix=/home/ajax/bochs_debugger --enable-vmx \
+            --enable-debugger --enable-disasm --enable-iodebug \
+            --enable-x86-debugger --with-x --with-x11 LDFLAGS='-pthread'
+
+
+PATH=/home/ajax/bochs/bin:$PATH
+BXSHARE=/home/ajax/bochs/share/bochs
