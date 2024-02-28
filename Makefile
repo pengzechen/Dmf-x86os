@@ -1,7 +1,8 @@
 
-
+# windows 
 # TOOL_PREFIX = x86_64-elf-
-TOOL_PREFIX = ""
+# linux 
+TOOL_PREFIX = $(nullstring)
 
 BUILD_DIR = build/basic_set
 KERNEL_BUILD_DIR = build/kernel
