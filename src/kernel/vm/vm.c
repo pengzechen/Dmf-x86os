@@ -116,8 +116,8 @@ static inline int make_vmcs_current(vmcs_t *vmcs)
 
 static inline uint64_t vmcs_read(enum Encoding enc)
 {
-	uint64_t val;
-	asm volatile ("vmread %1, %0" : "=rm" (val) : "r" ((uint64_t)enc) : "cc");
+	uint32_t val;
+	asm volatile ("vmread %1, %0" : "=rm" (val) : "r" ((uint32_t)enc) : "cc");
 	return val;
 }
 
