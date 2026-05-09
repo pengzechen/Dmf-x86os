@@ -14,7 +14,7 @@ extern idt_entry_t * idt_table;
 
 
 union vmx_basic basic;
-uint64_t * vmxon_region OS_ALIGN(4096) = (void*)0;
+uint32_t * vmxon_region OS_ALIGN(4096) = (void*)0;
 vmcs_t   * vmcs         OS_ALIGN(4096) = (void*)0;
 
 void * guest_stack;
@@ -23,7 +23,7 @@ void * guest_syscall_stack;
 bool launched;
 static int guest_finished;
 static int in_guest;
-uint64_t hypercall_field;
+uint32_t hypercall_field;
 
 
 bool is_vmx_supported() {
@@ -38,10 +38,10 @@ bool is_vmx_supported() {
 		return false;
     }
     // STEP (2) Check if main board support vt
-    uint64_t md_check = rdmsr(MSR_IA32_FEATURE_CONTROL);
+    uint32_t md_check = rdmsr(MSR_IA32_FEATURE_CONTROL);
 	if ((md_check & 0x5) == 0x5) {
 		printf("VMX enabled and locked by BIOS");
-		return false;
+		return true;
 	} else if (md_check & 0x1) {
 		printf("ERROR: VMX locked out by BIOS without enabled");
 		return false;
@@ -153,12 +153,12 @@ int clear_ptrld () {
 	vmcs->hdr.revision_id = basic.revision;
 	/* vmclear first to init vmcs */
 	if (vmcs_clear(vmcs)) {
-		printf("%s : vmcs_clear error\n", __func__);
+		printf("%s : vmcs_clear error", __func__);
 		return 1;
 	}
 
 	if (make_vmcs_current(vmcs)) {
-		printf("%s : make_vmcs_current error\n", __func__);
+		printf("%s : make_vmcs_current error", __func__);
 		return 1;
 	}
 }
@@ -202,11 +202,18 @@ void guest_main() {
 }
 
 /* This function can only be called in guest */
+/* 参数通过 edi 寄存器传递（guest 内部约定） */
 void __attribute__((__used__)) hypercall(uint32_t hypercall_no)
 {
-	uint64_t val = 0;
-	val = (hypercall_no & HYPERCALL_MASK) | HYPERCALL_BIT;
+	uint32_t val;
+	uint32_t actual_no;
+
+	/* 从 edi 获取实际参数（vm_as.S 中 mov $1, %edi） */
+	asm volatile("mov %%edi, %0" : "=r"(actual_no));
+
+	val = (actual_no & HYPERCALL_MASK) | HYPERCALL_BIT;
 	hypercall_field = val;
+	printf("hypercall: %d", actual_no);
 	asm volatile("vmcall\n\t");
 }
 
@@ -409,19 +416,19 @@ void vmcs_init () {
 
 void print_vmexit_info()
 {
-	uint64_t guest_eip, guest_esp;
+	uint32_t guest_eip, guest_esp;
 	uint32_t reason = vmcs_read(EXI_REASON) & 0xff;
 	uint32_t exit_qual = vmcs_read(EXI_QUALIFICATION);
 	guest_eip = vmcs_read(GUEST_RIP);
 	guest_esp = vmcs_read(GUEST_RSP);
 	printf("VMEXIT info:");
-	printf("vmexit reason = %d", reason);
-	printf("exit qualification = %#x", exit_qual);
-	printf("Bit 31 of reason = %llx", (vmcs_read(EXI_REASON) >> 31) & 1);
-	printf("guest_eip = %#llx", guest_eip);
-	printf("EAX=%#x    EBX=%#x    ECX=%#x    EDX=%#x",
+	printf("    vmexit reason = %d", reason);
+	printf("    exit qualification = %#x", exit_qual);
+	printf("    Bit 31 of reason = %x", (vmcs_read(EXI_REASON) >> 31) & 1);
+	printf("    guest_eip = %#x", guest_eip);
+	printf("    EAX=%#x    EBX=%#x    ECX=%#x    EDX=%#x",
 		regs.eax, regs.ebx, regs.ecx, regs.edx);
-	printf("ESP=%#llx    EBP=%#x    ESI=%#x    EDI=%#x",
+	printf("    ESP=%#x    EBP=%#x    ESI=%#x    EDI=%#x",
 		guest_esp, regs.ebp, regs.esi, regs.edi);
 }
 
@@ -430,42 +437,42 @@ void print_vmentry_failure_info(struct vmentry_failure *failure) {
 		printf("Early %s failure: ", failure->instr);
 		switch (failure->flags & VMX_ENTRY_FLAGS) {
 		case X86_EFLAGS_CF:
-			printf("current-VMCS pointer is not valid.\n");
+			printf("current-VMCS pointer is not valid.");
 			break;
 		case X86_EFLAGS_ZF:
-			printf("error number is %lld. See Intel 30.4.\n",
+			printf("error number is %x. See Intel 30.4.",
 			       vmcs_read(VMX_INST_ERROR));
 			break;
 		default:
-			printf("unexpected flags %x!\n", failure->flags);
+			printf("unexpected flags %x!", failure->flags);
 		}
 	} else {
-		uint64_t reason = vmcs_read(EXI_REASON);
-		uint64_t qual = vmcs_read(EXI_QUALIFICATION);
+		uint32_t reason = vmcs_read(EXI_REASON);
+		uint32_t qual = vmcs_read(EXI_QUALIFICATION);
 
-		printf("Non-early %s failure (reason=%#llx, qual=%#llx): ",
+		printf("Non-early %s failure (reason=%#x, qual=%#x): ",
 			failure->instr, reason, qual);
 
 		switch (reason & 0xff) {
 		case VMX_FAIL_STATE:
-			printf("invalid guest state\n");
+			printf("invalid guest state");
 			break;
 		case VMX_FAIL_MSR:
-			printf("MSR loading\n");
+			printf("MSR loading");
 			break;
 		case VMX_FAIL_MCHECK:
-			printf("machine-check event\n");
+			printf("machine-check event");
 			break;
 		default:
-			printf("unexpected basic exit reason %lld\n",
+			printf("unexpected basic exit reason %x",
 			       reason & 0xff);
 		}
 
 		if (!(reason & VMX_ENTRY_FAILURE))
-			printf("\tVMX_ENTRY_FAILURE BIT NOT SET!\n");
+			printf("    VMX_ENTRY_FAILURE BIT NOT SET!");
 
 		if (reason & 0x7fff0000)
-			printf("\tRESERVED BITS SET!\n");
+			printf("    RESERVED BITS SET!");
 	}
 }
 
@@ -473,13 +480,9 @@ void print_vmentry_failure_info(struct vmentry_failure *failure) {
 
 static bool is_hypercall(void)
 {
-	uint32_t reason, hyper_bit;
-
-	reason = vmcs_read(EXI_REASON) & 0xff;
-	hyper_bit = hypercall_field & HYPERCALL_BIT;
-	if (reason == VMX_VMCALL && hyper_bit)
-		return true;
-	return false;
+	uint32_t reason = vmcs_read(EXI_REASON) & 0xff;
+	/* 简化：只要是 VMCALL 就认为是 hypercall */
+	return (reason == VMX_VMCALL);
 }
 
 static int handle_hypercall(void)
@@ -490,10 +493,13 @@ static int handle_hypercall(void)
 	hypercall_field = 0;
 	switch (hypercall_no) {
 	case HYPERCALL_VMEXIT:
+		printf("hypercall: VMEXIT");
 		return VMX_VMEXIT;
 	case HYPERCALL_VMABORT:
+		printf("hypercall: VMABORT");
 		return VMX_VMABORT;
 	case HYPERCALL_VMSKIP:
+		printf("hypercall: VMSKIP");
 		return VMX_VMSKIP;
 	default:
 		printf("ERROR : Invalid hypercall number : %d", hypercall_no);
@@ -506,14 +512,29 @@ void vm_syscall_handler (uint32_t no) {  printf("no: %x", no);  }
 static int exit_handler(void)
 {
 	int ret;
+	uint32_t reason = vmcs_read(EXI_REASON) & 0xff;
+	uint64_t guest_rip = vmcs_read(GUEST_RIP);
 
 	regs.eflags = vmcs_read(GUEST_RFLAGS);
 
 	if (is_hypercall()) {
+		/* VMCALL 指令长度为 3 字节，手动前进 RIP */
+		vmcs_write(GUEST_RIP, guest_rip + 3);
 		ret = handle_hypercall();
 	} else {
 		print_vmexit_info();
-		ret = 2;
+
+		/* 处理需要特殊指令的 VM exit */
+		switch (reason) {
+		case 10:  /* CPUID */
+			/* cpuid 指令长度为 2 字节，手动前进 RIP */
+			vmcs_write(GUEST_RIP, guest_rip + 2);
+			break;
+		/* 可以在这里添加其他 exit reason 的处理 */
+		}
+
+		/* 对于非 hypercall 的 VM exit，继续执行 guest */
+		ret = VMX_RESUME;
 	}
 
 	vmcs_write(GUEST_RFLAGS, regs.eflags);
@@ -576,7 +597,7 @@ static bool vmx_enter_guest(struct vmentry_failure *failure)
 	failure->instr = launched ? "vmresume" : "vmlaunch";
 
 	bool fail_early = false;
-	uint64_t reason = vmcs_read(EXI_REASON);
+	uint32_t reason = vmcs_read(EXI_REASON);
 
 	return !fail_early && !(reason & VMX_ENTRY_FAILURE);
 }
@@ -590,6 +611,7 @@ static int vmx_run(void)
 		bool entered;
 		struct vmentry_failure failure;
 
+		printf("Guest in ...");
 		entered = vmx_enter_guest(&failure);
 
 		if (entered) {
@@ -608,7 +630,15 @@ static int vmx_run(void)
 				continue;
 			case VMX_VMEXIT:
 				guest_finished = 1;
+				printf("Guest exited normally");
 				return 0;
+			case VMX_VMABORT:
+				guest_finished = 1;
+				printf("Guest aborted!");
+				return 0;
+			case VMX_VMSKIP:
+				printf("Guest skipped - continue running");
+				continue;
 			case VMX_EXIT:
 				break;
 			default:
@@ -651,6 +681,8 @@ void virt_enable () {
 		printf("Error: %s : vmxoff failed", __func__);
 		return;
 	}
+
+	printf("vmx test finished");
 
 }
 

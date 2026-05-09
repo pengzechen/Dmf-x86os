@@ -2,15 +2,18 @@
 # windows 
 # TOOL_PREFIX = x86_64-elf-
 # linux 
-TOOL_PREFIX = $(nullstring)
+TOOL_PREFIX = x86_64-linux-musl-
 
 BUILD_DIR = build/basic_set
 KERNEL_BUILD_DIR = build/kernel
 
 INCLUDE = -I ./include
 
-CFLAGS_NO_STDIN = -g -c -O0 -m32 -fno-pie -fno-stack-protector -nostdlib -fno-builtin-puts
-CFLAGS = -g -c -O0 -m32 -fno-pie -fno-stack-protector -nostdlib -nostdinc -fno-builtin-puts
+CFLAGS = -g -c -O0 -m32
+CFLAGS  += -fno-pie -fno-stack-protector -fno-stack-clash-protection -U_FORTIFY_SOURCE
+CFLAGS  += -ffreestanding -fno-builtin
+CFLAGS  += -mno-mmx -mno-sse
+LDFLAGS := -nostdlib -nostartfiles -nodefaultlibs -no-pie
 
 basic: src/basic_set/os.c src/basic_set/start.S
 	rm -f build/disk.img
@@ -48,10 +51,10 @@ kernel: src/kernel/init_as.S src/kernel/irq_as.S src/kernel/base.c \
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/init.c     -o $(KERNEL_BUILD_DIR)/init.o
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/io.c        -o $(KERNEL_BUILD_DIR)/io.o
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/string.c     -o $(KERNEL_BUILD_DIR)/string.o
-	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS_NO_STDIN) src/kernel/printf.c     -o $(KERNEL_BUILD_DIR)/printf.o
-	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS_NO_STDIN) src/kernel/cpuinfo.c   -o $(KERNEL_BUILD_DIR)/cpuinfo.o
-	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS_NO_STDIN) src/kernel/syscall.c   -o $(KERNEL_BUILD_DIR)/syscall.o
-	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS_NO_STDIN) src/kernel/syscall_as.S   -o $(KERNEL_BUILD_DIR)/syscall_as.o
+	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/printf.c     -o $(KERNEL_BUILD_DIR)/printf.o
+	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/cpuinfo.c   -o $(KERNEL_BUILD_DIR)/cpuinfo.o
+	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/syscall.c   -o $(KERNEL_BUILD_DIR)/syscall.o
+	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/syscall_as.S   -o $(KERNEL_BUILD_DIR)/syscall_as.o
 
 	# mem
 	$(TOOL_PREFIX)gcc $(INCLUDE) $(CFLAGS) src/kernel/mem/mem.c     -o $(KERNEL_BUILD_DIR)/mem.o

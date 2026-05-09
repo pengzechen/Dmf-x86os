@@ -12,7 +12,7 @@
 
 #define BINSTR_SZ (sizeof(uint32_t) * 8 + sizeof(uint32_t) * 2)
 
-#define BUFSZ 2000
+#define BUFSZ 512
 
 extern void puts(const char * s);
 

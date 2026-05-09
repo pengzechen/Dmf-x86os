@@ -12,13 +12,24 @@ extern void syscall_handler();
 
 void do_syscall (int func, char * str, char color) {
     static int row = 0;
+    static int cleared = 0;
+
     if (func == 2) {
+        /* 第一次输出时清屏 */
+        if (!cleared) {
+            uint16_t * video = (uint16_t*)0xb8000;
+            for (int i = 0; i < 80 * 25; i++) {
+                video[i] = (' ') | (0x02 << 8);
+            }
+            cleared = 1;
+            row = 0;
+        }
+
         uint16_t * dest = (uint16_t*)0xb8000 + 80 * row;
         while (*str) {
             *dest++ = *str++ | (color << 8);
         }
         row = (row >= 25) ? 0 : row + 1;
-        // for (int i = 0; i<0xffffff; i++) ;
     }
 }
 

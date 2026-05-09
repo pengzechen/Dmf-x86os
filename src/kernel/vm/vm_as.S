@@ -29,12 +29,25 @@ entry_sysenter:
 .text
 .extern guest_main, hypercall
 guest_entry:
-    # mov $2, %eax
-    # push $4
-    # cpuid   # 这个指令成功触发 exit reason 10
+    # 测试1: cpuid 指令 (exit reason 10)
+    cpuid
+
+    # 测试2: guest_main
     call guest_main
+
+    # 测试3: 第一次 hypercall - VMSKIP (3)，guest 继续运行
+    mov $3, %edi
+    call hypercall
+
+    # 测试4: 第二次 hypercall - VMEXIT (1)，正常退出
     mov $1, %edi
     call hypercall
+
+    # 如果执行到这里，停止
+    hlt
+    jmp .
+
+
 
 
 .global vmx_return1

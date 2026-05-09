@@ -30,12 +30,12 @@ void phys_alloc_show(void)
 	int i;
 
 	spin_lock(&lock);
-	printf("phys_alloc minimum alignment: %#" PRIx32 "\n", (uint32_t)early_alloc_ops.align_min);
+	printf("phys_alloc minimum alignment: %x", (uint32_t)early_alloc_ops.align_min);
 	
     for (i = 0; i < nr_regions; ++i)
-		printf("%016" PRIx32 "-%016" PRIx32 " [%s]\n", (uint32_t)regions[i].base, (uint32_t)(regions[i].base + regions[i].size - 1), "USED");
+		printf("%016" PRIx32 "-%016" PRIx32 " [%s]", (uint32_t)regions[i].base, (uint32_t)(regions[i].base + regions[i].size - 1), "USED");
 	
-    printf("%016" PRIx32 "-%016" PRIx32 " [%s]\n", (uint32_t)base, (uint32_t)(top - 1), "FREE");
+    printf("%016" PRIx32 "-%016" PRIx32 " [%s]", (uint32_t)base, (uint32_t)(top - 1), "FREE");
 	spin_unlock(&lock);
 }
 
@@ -79,7 +79,7 @@ phys_alloc_aligned_safe(phys_addr_t size, phys_addr_t align, bool safe)
 		printf("phys_alloc: requested=%#" PRIx32
 		       " (align=%#" PRIx32 "), "
 		       "need=%#" PRIx32 ", but free=%#" PRIx32 ". "
-		       "top=%#" PRIx32 ", top_safe=%#" PRIx32 "\n",
+		       "top=%#" PRIx32 ", top_safe=%#" PRIx32 "",
 		       (uint32_t)size_orig, (uint32_t)align, (uint32_t)size, top_safe - base,
 		       (uint32_t)top, top_safe);
 		spin_unlock(&lock);
@@ -93,7 +93,7 @@ phys_alloc_aligned_safe(phys_addr_t size, phys_addr_t align, bool safe)
 		regions[nr_regions].size = size_orig;
 		++nr_regions;
 	} else if (!warned) {
-		printf("WARNING: phys_alloc: No free log entries, can no longer log allocations...\n");
+		printf("WARNING: phys_alloc: No free log entries, can no longer log allocations...");
 		warned = true;
 	}
 

@@ -13,6 +13,8 @@ _start:
 
     call virt_enable
 
+    jmp .
+
     jmp to_task_0
 
 

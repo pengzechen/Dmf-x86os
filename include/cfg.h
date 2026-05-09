@@ -58,7 +58,7 @@
 #define assert(cond)							\
 do {											\
 	if (!(cond)) {								\
-		printf("%s:%d: assert failed: %s\n",	\
+		printf("%s:%d: assert failed: %s",	\
 		       __FILE__, __LINE__, #cond);		\
 	}										\
 } while (0)
@@ -66,7 +66,7 @@ do {											\
 #define assert_msg(cond, fmt, args...)					\
 do {													\
 	if (!(cond)) {										\
-		printf("%s:%d: assert failed: %s: " fmt "\n",	\
+		printf("%s:%d: assert failed: %s: " fmt "",	\
 		       __FILE__, __LINE__, #cond, ## args);		\
 	}												\
 } while (0)

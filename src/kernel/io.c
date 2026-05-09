@@ -74,15 +74,16 @@ static void print_serial(const char *buf)
 
 void sys_show (char * str, char color) {
     uint32_t addr[] = {0, 7 * 8};
+    uint32_t func_id = 2;  /* 使用内存变量避免寄存器冲突 */
     __asm__ __volatile__("push %[color];"
                          "push %[str];"
                          "push %[id];"
                          "lcalll *(%[a])"
                         :
-                        :[a]"r"(addr), 
-                        [color]"m"(color), 
-                        [str]"m"(str), 
-                        [id]"r"(2));
+                        :[a]"r"(addr),
+                        [color]"m"(color),
+                        [str]"m"(str),
+                        [id]"m"(func_id));  /* 改为 "m" 约束 */
 }
 
 void puts(const char *s)
