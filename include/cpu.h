@@ -76,6 +76,13 @@ static inline uint32_t read_cr3(void)
     return val;
 }
 
+static inline uint32_t read_cr2(void)
+{
+    uint32_t val;
+    asm volatile ("mov %%cr2, %0" : "=r"(val) : : "memory");
+    return val;
+}
+
 static inline void write_cr4(uint32_t val)
 {
     __asm__ __volatile__ ("mov %0, %%cr4" : : "r"(val) : "memory");

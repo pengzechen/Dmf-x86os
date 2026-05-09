@@ -39,7 +39,12 @@ guest_entry:
     mov $3, %edi
     call hypercall
 
-    # 测试4: 第二次 hypercall - VMEXIT (1)，正常退出
+    # 测试4: CR3 访问测试 - 触发 VM exit (reason 28 或 29)
+    mov $0x111000, %eax   # 读取当前 CR3 到 EAX
+    mov %cr3, %ebx        # 触发 CR3_STORE VM exit
+    mov %eax, %cr3        # 触发 CR3_LOAD VM exit
+
+    # 测试5: 第二次 hypercall - VMEXIT (1)，正常退出
     mov $1, %edi
     call hypercall
 

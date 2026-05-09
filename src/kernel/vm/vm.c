@@ -17,8 +17,28 @@ union vmx_basic basic;
 uint32_t * vmxon_region OS_ALIGN(4096) = (void*)0;
 vmcs_t   * vmcs         OS_ALIGN(4096) = (void*)0;
 
-void * guest_stack;
-void * guest_syscall_stack;
+/* Guest 栈 - 使用静态分配，确保在 guest 页表映射范围内 */
+static uint8_t guest_stack[4096] OS_ALIGN(4096);
+static uint8_t guest_syscall_stack[4096] OS_ALIGN(4096);
+
+/* Guest 页表 - 使用 4KB 页表映射 0-64MB，确保覆盖所有 kernel 代码 */
+static uint32_t guest_page_dir[1024] OS_ALIGN(4096);
+static uint32_t guest_page_table0[1024] OS_ALIGN(4096);  /* 0-4MB */
+static uint32_t guest_page_table1[1024] OS_ALIGN(4096);  /* 4-8MB */
+static uint32_t guest_page_table2[1024] OS_ALIGN(4096);  /* 8-12MB */
+static uint32_t guest_page_table3[1024] OS_ALIGN(4096);  /* 12-16MB */
+static uint32_t guest_page_table4[1024] OS_ALIGN(4096);  /* 16-20MB */
+static uint32_t guest_page_table5[1024] OS_ALIGN(4096);  /* 20-24MB */
+static uint32_t guest_page_table6[1024] OS_ALIGN(4096);  /* 24-28MB */
+static uint32_t guest_page_table7[1024] OS_ALIGN(4096);  /* 28-32MB */
+static uint32_t guest_page_table8[1024] OS_ALIGN(4096);  /* 32-36MB */
+static uint32_t guest_page_table9[1024] OS_ALIGN(4096);  /* 36-40MB */
+static uint32_t guest_page_table10[1024] OS_ALIGN(4096); /* 40-44MB */
+static uint32_t guest_page_table11[1024] OS_ALIGN(4096); /* 44-48MB */
+static uint32_t guest_page_table12[1024] OS_ALIGN(4096); /* 48-52MB */
+static uint32_t guest_page_table13[1024] OS_ALIGN(4096); /* 52-56MB */
+static uint32_t guest_page_table14[1024] OS_ALIGN(4096); /* 56-60MB */
+static uint32_t guest_page_table15[1024] OS_ALIGN(4096); /* 60-64MB */
 
 bool launched;
 static int guest_finished;
@@ -52,6 +72,36 @@ bool is_vmx_supported() {
 	return true;
 }
 
+/* 初始化 Guest 页表 - 4KB 页表映射 0-64MB */
+static void init_guest_page_table(void) {
+	memset(guest_page_dir, 0, sizeof(guest_page_dir));
+
+	/* 初始化 16 个页表，每个映射 4MB */
+	static uint32_t *tables[16] = {
+		guest_page_table0, guest_page_table1, guest_page_table2, guest_page_table3,
+		guest_page_table4, guest_page_table5, guest_page_table6, guest_page_table7,
+		guest_page_table8, guest_page_table9, guest_page_table10, guest_page_table11,
+		guest_page_table12, guest_page_table13, guest_page_table14, guest_page_table15
+	};
+
+	for (int pt = 0; pt < 16; pt++) {
+		memset(tables[pt], 0, 4096);
+
+		/* 每个页表映射 4MB (1024 个 4KB 页) */
+		for (int i = 0; i < 1024; i++) {
+			uint32_t phys_addr = (pt * 4 * 1024 * 1024) + (i * 4096);
+			tables[pt][i] = phys_addr | PDE_P | PDE_W | PDE_U;
+		}
+
+		/* 设置 PDE 指向页表 */
+		guest_page_dir[pt] = ((uint32_t)tables[pt]) | PDE_P | PDE_W | PDE_U;
+	}
+
+	/* 0x10000000 (256MB) 故意不映射，用于触发缺页 */
+
+	printf("Guest page table initialized: CR3=%#x (mapped 0-64MB)", (uint32_t)guest_page_dir);
+}
+
 void init_vmx () {
 	uint64_t fix_cr0_set, fix_cr0_clr;
 	uint64_t fix_cr4_set, fix_cr4_clr;
@@ -75,10 +125,9 @@ void init_vmx () {
 	write_cr0(cr0_2);
 	write_cr4(cr4_2);
 
-	guest_stack = malloc(4096);
-	guest_syscall_stack = malloc(4096);
-	memset(guest_stack, 0, PAGE_SIZE);
-	memset(guest_syscall_stack, 0, PAGE_SIZE);
+	/* Guest 栈现在是静态分配的，无需 malloc */
+
+	init_guest_page_table();
 
 	*(uint32_t*)(vmxon_region) = basic.revision;
 }
@@ -231,7 +280,11 @@ static void init_vmcs_ctrl(void)
 		vmcs_write(CPU_EXEC_CTRL1, ctrl_cpu[1]);
 	}
 	vmcs_write(CR3_TARGET_COUNT, 0);
-	
+
+	/* 设置异常 bitmap：让所有异常都触发 VM exit，便于诊断 */
+	vmcs_write(EXC_BITMAP, 0xFFFFFFFF);  /* 所有异常都 VM exit */
+		printf("EXC_BITMAP set to %#x", 0xFFFFFFFF);
+
 	// 00020472070e[CPU0  ] VMWRITE: not supported field 0x00000000
 	// vmcs_write(VPID, ++vpid_cnt);
 }
@@ -285,7 +338,8 @@ static void init_vmcs_guest(void)
 	uint32_t guest_cr0, guest_cr4, guest_cr3;
 	/* 26.3.1.1 */
 	guest_cr0 = read_cr0();
-	guest_cr3 = read_cr3();
+	/* 暂时使用 host 的 CR3，确保所有地址都能映射 */
+	guest_cr3 = read_cr3();  /* 使用 host 页表 */
 	guest_cr4 = read_cr4();
 
 	if (ctrl_enter & ENT_GUEST_64) {
@@ -398,6 +452,8 @@ void vmcs_init () {
 	ctrl_enter = (ENT_LOAD_EFER | ENT_GUEST_64);
 	/* DIsable IO instruction VMEXIT now */
 	ctrl_cpu[0] &= (~(CPU_IO | CPU_IO_BITMAP));
+	/* 启用 CR3 访问的 VM exit，用于测试 */
+	ctrl_cpu[0] |= CPU_CR3_LOAD | CPU_CR3_STORE;
 	ctrl_cpu[1] = 0;
 
 	ctrl_pin = (ctrl_pin | ctrl_pin_rev.set) & ctrl_pin_rev.clr;
@@ -522,15 +578,64 @@ static int exit_handler(void)
 		vmcs_write(GUEST_RIP, guest_rip + 3);
 		ret = handle_hypercall();
 	} else {
-		print_vmexit_info();
+		// print_vmexit_info();
 
 		/* 处理需要特殊指令的 VM exit */
 		switch (reason) {
 		case 10:  /* CPUID */
 			/* cpuid 指令长度为 2 字节，手动前进 RIP */
+		{
 			vmcs_write(GUEST_RIP, guest_rip + 2);
 			break;
-		/* 可以在这里添加其他 exit reason 的处理 */
+		}
+
+		case 14:  /* EXCEPTION/NMI - 检查是否为缺页异常 */
+		{
+			uint32_t intr_info = vmcs_read(EXI_INTR_INFO);
+			uint8_t vector = intr_info & 0xFF;
+			uint32_t inst_len = vmcs_read(EXI_INST_LEN);
+
+			if (vector == 14) {  /* #PF 缺页异常 */
+				uint32_t cr2 = read_cr2();  /* 从主机 CR2 读取缺页地址 */
+			printf("EXCEPTION: vector=%d CR2=%#x inst_len=%d", vector, cr2, inst_len);
+				printf("PAGE FAULT: CR2=%#x RIP=%#x", cr2, guest_rip);
+				vmcs_write(GUEST_RIP, guest_rip + inst_len);
+				return VMX_VMEXIT;  /* 缺页后停止 guest */
+			}
+			break;
+		}
+
+		case 28:  /* CR3 LOAD: mov to CR3 */
+		case 29:  /* CR3 STORE: mov from CR3 */
+		{
+			uint32_t inst_len = vmcs_read(EXI_INST_LEN);
+			uint32_t qual = vmcs_read(EXI_QUALIFICATION);
+			int access_type = (qual >> 4) & 1;  /* 0=从CR读, 1=写到CR */
+
+			printf("CR3 ACCESS: type=%s qual=%#x",
+				access_type ? "write" : "read", qual);
+
+			/* 简单处理：只前进 RIP，不模拟 CR 操作 */
+			/* 如果需要真正测试 CR 操作，应该使用更完整的方法 */
+			vmcs_write(GUEST_RIP, guest_rip + 3);
+
+			/* 如果是 CR3 写入，直接退出测试避免问题 */
+			if (access_type == 1) {
+				printf(" - CR3 write detected, exiting test");
+				return VMX_VMEXIT;
+			}
+			break;
+		}
+
+		case 48:  /* EPT VIOLATION */
+		{
+			uint64_t gpa = vmcs_read(GUEST_PHYSICAL_ADDRESS);
+			uint32_t inst_len = vmcs_read(ENT_INST_LEN);
+			printf("EPT VIOLATION: GPA=%#x RIP=%#x", (uint32_t)gpa, guest_rip);
+			vmcs_write(GUEST_RIP, guest_rip + inst_len);
+			vmcs_write(GUEST_RFLAGS, regs.eflags);
+			return VMX_VMEXIT;
+		}
 		}
 
 		/* 对于非 hypercall 的 VM exit，继续执行 guest */

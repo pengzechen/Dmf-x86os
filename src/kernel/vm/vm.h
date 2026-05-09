@@ -266,6 +266,7 @@ enum Encoding {
 	IO_RDI			= 0x6406ul,
 	IO_RIP			= 0x6408ul,
 	GUEST_LINEAR_ADDRESS	= 0x640aul,
+	GUEST_PHYSICAL_ADDRESS	= 0x6402ul,
 
 	/* Natural-Width Guest State Fields */
 	GUEST_CR0		= 0x6800ul,
