@@ -21,24 +21,6 @@ vmcs_t   * vmcs         OS_ALIGN(4096) = (void*)0;
 static uint8_t guest_stack[4096] OS_ALIGN(4096);
 static uint8_t guest_syscall_stack[4096] OS_ALIGN(4096);
 
-/* Guest 页表 - 使用 4KB 页表映射 0-64MB，确保覆盖所有 kernel 代码 */
-static uint32_t guest_page_dir[1024] OS_ALIGN(4096);
-static uint32_t guest_page_table0[1024] OS_ALIGN(4096);  /* 0-4MB */
-static uint32_t guest_page_table1[1024] OS_ALIGN(4096);  /* 4-8MB */
-static uint32_t guest_page_table2[1024] OS_ALIGN(4096);  /* 8-12MB */
-static uint32_t guest_page_table3[1024] OS_ALIGN(4096);  /* 12-16MB */
-static uint32_t guest_page_table4[1024] OS_ALIGN(4096);  /* 16-20MB */
-static uint32_t guest_page_table5[1024] OS_ALIGN(4096);  /* 20-24MB */
-static uint32_t guest_page_table6[1024] OS_ALIGN(4096);  /* 24-28MB */
-static uint32_t guest_page_table7[1024] OS_ALIGN(4096);  /* 28-32MB */
-static uint32_t guest_page_table8[1024] OS_ALIGN(4096);  /* 32-36MB */
-static uint32_t guest_page_table9[1024] OS_ALIGN(4096);  /* 36-40MB */
-static uint32_t guest_page_table10[1024] OS_ALIGN(4096); /* 40-44MB */
-static uint32_t guest_page_table11[1024] OS_ALIGN(4096); /* 44-48MB */
-static uint32_t guest_page_table12[1024] OS_ALIGN(4096); /* 48-52MB */
-static uint32_t guest_page_table13[1024] OS_ALIGN(4096); /* 52-56MB */
-static uint32_t guest_page_table14[1024] OS_ALIGN(4096); /* 56-60MB */
-static uint32_t guest_page_table15[1024] OS_ALIGN(4096); /* 60-64MB */
 
 bool launched;
 static int guest_finished;
@@ -72,35 +54,6 @@ bool is_vmx_supported() {
 	return true;
 }
 
-/* 初始化 Guest 页表 - 4KB 页表映射 0-64MB */
-static void init_guest_page_table(void) {
-	memset(guest_page_dir, 0, sizeof(guest_page_dir));
-
-	/* 初始化 16 个页表，每个映射 4MB */
-	static uint32_t *tables[16] = {
-		guest_page_table0, guest_page_table1, guest_page_table2, guest_page_table3,
-		guest_page_table4, guest_page_table5, guest_page_table6, guest_page_table7,
-		guest_page_table8, guest_page_table9, guest_page_table10, guest_page_table11,
-		guest_page_table12, guest_page_table13, guest_page_table14, guest_page_table15
-	};
-
-	for (int pt = 0; pt < 16; pt++) {
-		memset(tables[pt], 0, 4096);
-
-		/* 每个页表映射 4MB (1024 个 4KB 页) */
-		for (int i = 0; i < 1024; i++) {
-			uint32_t phys_addr = (pt * 4 * 1024 * 1024) + (i * 4096);
-			tables[pt][i] = phys_addr | PDE_P | PDE_W | PDE_U;
-		}
-
-		/* 设置 PDE 指向页表 */
-		guest_page_dir[pt] = ((uint32_t)tables[pt]) | PDE_P | PDE_W | PDE_U;
-	}
-
-	/* 0x10000000 (256MB) 故意不映射，用于触发缺页 */
-
-	printf("Guest page table initialized: CR3=%#x (mapped 0-64MB)", (uint32_t)guest_page_dir);
-}
 
 void init_vmx () {
 	uint64_t fix_cr0_set, fix_cr0_clr;
@@ -124,10 +77,6 @@ void init_vmx () {
 	
 	write_cr0(cr0_2);
 	write_cr4(cr4_2);
-
-	/* Guest 栈现在是静态分配的，无需 malloc */
-
-	init_guest_page_table();
 
 	*(uint32_t*)(vmxon_region) = basic.revision;
 }
