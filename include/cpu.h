@@ -97,7 +97,7 @@ static inline uint32_t read_cr4(void)
 
 
 
-static inline unsigned long read_rflags(void)
+static inline unsigned long read_eflags(void)
 {
 	unsigned long f;
 	__asm__ __volatile__ ("pushf; pop %0\n\t" : "=rm"(f));

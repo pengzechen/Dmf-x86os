@@ -45,7 +45,7 @@
 #define GATE_DPL0           (0 << 13)
 #define GATE_TYPE_IDT       (0xE << 8)
 
-#define KERNEL_START_ADDDR 0x100000
+#define KERNEL_START_ADDR 0x100000
 
 #define BITS_PER_LONG 32
 #define BIT(nr)			(1UL << (nr))

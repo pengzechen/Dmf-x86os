@@ -88,5 +88,5 @@ static void read_disk(int sector, int sector_count, uint8_t * buf) {
 }
 
 void os_init() {
-    read_disk(100, 500, (uint8_t *)KERNEL_START_ADDDR);
+    read_disk(100, 500, (uint8_t *)KERNEL_START_ADDR);
 }

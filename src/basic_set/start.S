@@ -110,6 +110,6 @@ start_32:
     mov %eax, %cr0
 
     call os_init
-    jmp $KERNEL_CODE_SEG, $KERNEL_START_ADDDR
+    jmp $KERNEL_CODE_SEG, $KERNEL_START_ADDR
 
 

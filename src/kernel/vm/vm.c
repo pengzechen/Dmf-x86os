@@ -150,29 +150,29 @@ void init_vmx () {
 static inline bool vmx_on(void)
 {
 	bool ret;
-	uint32_t rflags = read_rflags() | X86_EFLAGS_CF | X86_EFLAGS_ZF;
+	uint32_t eflags = read_eflags() | X86_EFLAGS_CF | X86_EFLAGS_ZF;
 	__asm__ __volatile__ ("push %1; popf; vmxon %2; setbe %0\n\t"
-		      : "=q" (ret) : "q" (rflags), "m" (vmxon_region) : "cc");
+		      : "=q" (ret) : "q" (eflags), "m" (vmxon_region) : "cc");
 	return ret;
 }
 
 static inline int vmcs_clear(vmcs_t *vmcs)
 {
 	bool ret;
-	uint32_t rflags = read_rflags() | X86_EFLAGS_CF | X86_EFLAGS_ZF;
+	uint32_t eflags = read_eflags() | X86_EFLAGS_CF | X86_EFLAGS_ZF;
 
 	asm volatile ("push %1; popf; vmclear %2; setbe %0"
-		      : "=q" (ret) : "q" (rflags), "m" (vmcs) : "cc");
+		      : "=q" (ret) : "q" (eflags), "m" (vmcs) : "cc");
 	return ret;
 }
 
 static inline int make_vmcs_current(vmcs_t *vmcs)
 {
 	bool ret;
-	uint32_t rflags = read_rflags() | X86_EFLAGS_CF | X86_EFLAGS_ZF;
+	uint32_t eflags = read_eflags() | X86_EFLAGS_CF | X86_EFLAGS_ZF;
 
 	asm volatile ("push %1; popf; vmptrld %2; setbe %0"
-		      : "=q" (ret) : "q" (rflags), "m" (vmcs) : "cc");
+		      : "=q" (ret) : "q" (eflags), "m" (vmcs) : "cc");
 	return ret;
 }
 
@@ -198,7 +198,7 @@ static inline int vmcs_write(enum Encoding enc, uint32_t val)
 static inline int vmx_off(void)
 {
 	bool ret;
-	uint32_t eflags = read_rflags() | X86_EFLAGS_CF | X86_EFLAGS_ZF;
+	uint32_t eflags = read_eflags() | X86_EFLAGS_CF | X86_EFLAGS_ZF;
 
 	asm volatile("push %1; popf; vmxoff; setbe %0\n\t"
 		     : "=q"(ret) : "q" (eflags) : "cc");
@@ -368,12 +368,7 @@ static void init_vmcs_guest(void)
 	guest_cr3 = setup_guest_page_tables();
 	guest_cr4 = read_cr4();
 
-	if (ctrl_enter & ENT_GUEST_64) {
-		guest_cr0 |= X86_CR0_PG;
-		guest_cr4 |= X86_CR4_PAE;
-	}
-	if ((ctrl_enter & ENT_GUEST_64) == 0)
-		guest_cr4 &= (~X86_CR4_PCIDE);
+	guest_cr4 &= (~X86_CR4_PCIDE);
 	if (guest_cr0 & X86_CR0_PG)
 		guest_cr0 |= X86_CR0_PE;
 
@@ -478,8 +473,8 @@ void vmcs_init () {
 	   control fields should be placed here */
 	/* 屏蔽中断 - 不设置 PIN_EXTINT，外部中断不会触发 VM-exit */
 	ctrl_pin |= PIN_NMI | PIN_VIRT_NMI;
-	ctrl_exit = EXI_LOAD_EFER | EXI_HOST_64;
-	ctrl_enter = (ENT_LOAD_EFER | ENT_GUEST_64);
+	ctrl_exit = 0;
+	ctrl_enter = 0;
 	/* DIsable IO instruction VMEXIT now */
 	ctrl_cpu[0] &= (~(CPU_IO | CPU_IO_BITMAP));
 	/* 启用 CR3 访问的 VM exit，用于测试 */
@@ -603,7 +598,7 @@ static int exit_handler(void)
 {
 	int ret;
 	uint32_t reason = vmcs_read(EXI_REASON) & 0xff;
-	uint64_t guest_rip = vmcs_read(GUEST_RIP);
+	uint32_t guest_eip = vmcs_read(GUEST_RIP);
 
 	regs.eflags = vmcs_read(GUEST_RFLAGS);
 	// print_vmexit_info();
@@ -611,7 +606,7 @@ static int exit_handler(void)
 
 	if (is_hypercall()) {
 		/* VMCALL 指令长度为 3 字节，手动前进 RIP */
-		vmcs_write(GUEST_RIP, guest_rip + 3);
+		vmcs_write(GUEST_RIP, guest_eip + 3);
 		ret = handle_hypercall();
 	} else {
 
@@ -625,7 +620,7 @@ static int exit_handler(void)
 			uint32_t cr2 = read_cr2();
 
 			printf("EXCEPTION: vector=%d CR2=%#x RIP=%#x inst_len=%d\n",
-				vector, cr2, guest_rip, inst_len);
+				vector, cr2, guest_eip, inst_len);
 
 			if (vector == 14) {  /* #PF 缺页异常 */
 				printf("PAGE FAULT: Attempted write to read-only page at %#x\n", cr2);
@@ -641,21 +636,21 @@ static int exit_handler(void)
 		}
 		case 10:  /* CPUID */
 		{
-			vmcs_write(GUEST_RIP, guest_rip + 2);
+			vmcs_write(GUEST_RIP, guest_eip + 2);
 			break;
 		}
 
 		case 12:  /* HLT */
 		{
-			printf("HLT VMEXIT: RIP=%#x\n", guest_rip);
-			vmcs_write(GUEST_RIP, guest_rip + 1);
+			printf("HLT VMEXIT: RIP=%#x\n", guest_eip);
+			vmcs_write(GUEST_RIP, guest_eip + 1);
 			break;
 		}
 
 		case 14:  /* INVLPG 指令 */
 		{
 			uint32_t inst_len = vmcs_read(EXI_INST_LEN);
-			vmcs_write(GUEST_RIP, guest_rip + inst_len);
+			vmcs_write(GUEST_RIP, guest_eip + inst_len);
 			break;
 		}
 
@@ -667,10 +662,10 @@ static int exit_handler(void)
 			int access_type = (qual >> 4) & 1;  /* 0=从CR读, 1=写到CR */
 
 			printf("CR3 ACCESS: type=%s qual=%#x inst_len=%d RIP=%#x\n",
-				access_type ? "write" : "read", qual, inst_len, guest_rip);
+				access_type ? "write" : "read", qual, inst_len, guest_eip);
 
 			/* 简单处理：只前进 RIP，不模拟 CR 操作 */
-			vmcs_write(GUEST_RIP, guest_rip + inst_len);
+			vmcs_write(GUEST_RIP, guest_eip + inst_len);
 
 			/* 如果是 CR3 写入，恢复原始 CR3 值 */
 			if (access_type == 1) {
@@ -682,10 +677,10 @@ static int exit_handler(void)
 
 		case 48:  /* EPT VIOLATION */
 		{
-			uint64_t gpa = vmcs_read(GUEST_PHYSICAL_ADDRESS);
+			uint32_t gpa = vmcs_read(GUEST_PHYSICAL_ADDRESS);
 			uint32_t inst_len = vmcs_read(ENT_INST_LEN);
-			printf("EPT VIOLATION: GPA=%#x RIP=%#x", (uint32_t)gpa, guest_rip);
-			vmcs_write(GUEST_RIP, guest_rip + inst_len);
+			printf("EPT VIOLATION: GPA=%#x RIP=%#x", gpa, guest_eip);
+			vmcs_write(GUEST_RIP, guest_eip + inst_len);
 			vmcs_write(GUEST_RFLAGS, regs.eflags);
 			return VMX_VMEXIT;
 		}

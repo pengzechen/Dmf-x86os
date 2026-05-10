@@ -5,14 +5,6 @@
 #include "msr.h"
 
 #define X86_CR4_VMXE   0x00002000
-
-#define VMX_START		0
-#define VMX_VMEXIT		1
-#define VMX_EXIT		2
-#define VMX_RESUME		3
-#define VMX_VMABORT		4
-#define VMX_VMSKIP		5
-
 union vmx_basic {
 	uint64_t val;
 	struct {
@@ -318,17 +310,16 @@ typedef struct _vmcs_t {
 	char data[0];
 }vmcs_t;
 
-// 上下文保护
+// 上下文保护（字段顺序与 SAVE_GPR_C 宏的 xchg 偏移严格对应）
 struct regs {
-	uint32_t eax;
-	uint32_t ecx;
-	uint32_t edx;
-	uint32_t ebx;
-	uint32_t cr2;
-	uint32_t ebp;
-	uint32_t esi;
-	uint32_t edi;
-	uint32_t eflags;
+	uint32_t eax;    // +0x00
+	uint32_t ebx;    // +0x04
+	uint32_t ecx;    // +0x08
+	uint32_t edx;    // +0x0c
+	uint32_t ebp;    // +0x10
+	uint32_t esi;    // +0x14
+	uint32_t edi;    // +0x18
+	uint32_t eflags; // 由 VMCS GUEST_RFLAGS 单独读写
 };
 
 struct vmentry_failure {
@@ -456,10 +447,6 @@ enum Reason {
 	VMX_XSAVES		= 63,
 	VMX_XRSTORS		= 64,
 };
-
-
-#define HYPERCALL_MASK		0xFFF
-#define HYPERCALL_BIT		(1ul << 12)
 
 
 #define VMX_START		0
