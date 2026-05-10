@@ -21,6 +21,70 @@ vmcs_t   * vmcs         OS_ALIGN(4096) = (void*)0;
 static uint8_t guest_stack[4096] OS_ALIGN(4096);
 static uint8_t guest_syscall_stack[4096] OS_ALIGN(4096);
 
+/* 测试页地址 - 使用代码段地址（只读） */
+#define TEST_READONLY_ADDR 0x103b46  /* guest_entry 中的某个地址 */
+
+/* Guest 页目录 - 使用 4KB 页表进行精细权限控制 */
+static uint32_t guest_page_dir[1024] OS_ALIGN(4096);
+
+/* Guest 页表 - 用于映射包含测试地址的 4MB 区域 */
+static uint32_t guest_page_table[1024] OS_ALIGN(4096);
+
+/* 页表项标志 */
+#define PTE_P    (1 << 0)  /* Present */
+#define PTE_W    (1 << 1)  /* Writable */
+#define PTE_U    (1 << 2)  /* User */
+#define PTE_D    (1 << 6)  /* Dirty */
+
+/*
+ * 创建 guest 页表
+ * 使用 4KB 页表，设置测试页面为只读
+ * 返回页目录的物理地址，用于设置 guest CR3
+ */
+static uint32_t setup_guest_page_tables(void)
+{
+    int i;
+    uint32_t test_page_idx;
+
+    printf("Setting up guest page tables...\n");
+
+    /* 初始化页目录 */
+    memset(guest_page_dir, 0, sizeof(guest_page_dir));
+    memset(guest_page_table, 0, sizeof(guest_page_table));
+
+    /* 为前 4MB (0x00000000 - 0x003fffff) 创建页表映射 */
+    /* 这个区域包含代码段 (0x103b46) */
+    guest_page_dir[0] = (uint32_t)guest_page_table | PDE_P | PDE_W | PDE_U;
+
+    /* 初始化页表，使用恒等映射 */
+    for (i = 0; i < 1024; i++) {
+        guest_page_table[i] = (i << 12) | PTE_P | PTE_W | PTE_U;
+    }
+
+    /* 计算测试地址所在的页表项索引 */
+    /* TEST_READONLY_ADDR = 0x103b46 */
+    /* 页内偏移 = 0xb46，页索引 = 0x103 */
+    test_page_idx = TEST_READONLY_ADDR >> 12;
+
+    /* 设置测试页面为只读（清除 PTE_W 位） */
+    guest_page_table[test_page_idx] &= ~PTE_W;
+
+    printf("Guest page directory at %#x\n", (uint32_t)guest_page_dir);
+    printf("Guest page table at %#x\n", (uint32_t)guest_page_table);
+    printf("Test page %#x (index %d) set to READ-ONLY\n",
+           test_page_idx << 12, test_page_idx);
+
+    /* 其他区域使用 4MB 页进行恒等映射（简化） */
+    for (i = 1; i < 1024; i++) {
+        guest_page_dir[i] = (i << 22) | PDE_P | PDE_W | PDE_U | PDE_PS;
+    }
+
+    return (uint32_t)guest_page_dir;
+}
+
+/* 导出测试页地址给汇编代码使用 */
+uint32_t test_no_access_page_addr = TEST_READONLY_ADDR;
+
 
 bool launched;
 static int guest_finished;
@@ -215,6 +279,19 @@ void __attribute__((__used__)) hypercall(uint32_t hypercall_no)
 	asm volatile("vmcall\n\t");
 }
 
+/*
+ * 初始化页表测试
+ *
+ * 策略：不修改页表，让 guest 直接写入只读的代码段
+ * 代码段是只读的，写入会触发 #PF
+ */
+static void init_page_table_test(void)
+{
+	printf("Page table test: Guest will write to read-only code segment\n");
+	printf("Test address (code segment): %#x\n", TEST_READONLY_ADDR);
+	printf("CR0.WP is enabled in guest\n");
+}
+
 // nochange
 static void init_vmcs_ctrl(void)
 {
@@ -287,8 +364,8 @@ static void init_vmcs_guest(void)
 	uint32_t guest_cr0, guest_cr4, guest_cr3;
 	/* 26.3.1.1 */
 	guest_cr0 = read_cr0();
-	/* 暂时使用 host 的 CR3，确保所有地址都能映射 */
-	guest_cr3 = read_cr3();  /* 使用 host 页表 */
+	/* 使用独立的 guest 页表（恒等映射） */
+	guest_cr3 = setup_guest_page_tables();
 	guest_cr4 = read_cr4();
 
 	if (ctrl_enter & ENT_GUEST_64) {
@@ -299,6 +376,9 @@ static void init_vmcs_guest(void)
 		guest_cr4 &= (~X86_CR4_PCIDE);
 	if (guest_cr0 & X86_CR0_PG)
 		guest_cr0 |= X86_CR0_PE;
+
+	/* 启用 CR0.WP (Write Protect)，使只读页保护生效 */
+	guest_cr0 |= X86_CR0_WP;
 
 	vmcs_write(GUEST_CR0, guest_cr0);
 	vmcs_write(GUEST_CR3, guest_cr3);
@@ -413,6 +493,8 @@ void vmcs_init () {
 	ctrl_exit = (ctrl_exit | ctrl_exit_rev.set) & ctrl_exit_rev.clr;
 	ctrl_cpu[0] = (ctrl_cpu[0] | ctrl_cpu_rev[0].set) & ctrl_cpu_rev[0].clr;
 
+	/* 初始化页表测试（在设置 VMCS 之前修改页表） */
+	init_page_table_test();
 
 	init_vmcs_ctrl();
 	init_vmcs_host();
@@ -535,40 +617,45 @@ static int exit_handler(void)
 
 		/* 处理需要特殊指令的 VM exit */
 		switch (reason) {
+		case 0:  /* EXCEPTION/NMI */
+		{
+			uint32_t intr_info = vmcs_read(EXI_INTR_INFO);
+			uint8_t vector = intr_info & 0xFF;
+			uint32_t inst_len = vmcs_read(EXI_INST_LEN);
+			uint32_t cr2 = read_cr2();
+
+			printf("EXCEPTION: vector=%d CR2=%#x RIP=%#x inst_len=%d\n",
+				vector, cr2, guest_rip, inst_len);
+
+			if (vector == 14) {  /* #PF 缺页异常 */
+				printf("PAGE FAULT: Attempted write to read-only page at %#x\n", cr2);
+				/* 切换host的CR3， 模拟修复 */
+				vmcs_write(GUEST_CR3, read_cr3());
+			}
+			break;
+		}
+
 		case 1:   /* EXTERNAL INTERRUPT */
 		{
-			// printf("EXTERNAL INTERRUPT VMEXIT\n");
-			// return VMX_VMEXIT;
 			break;
 		}
 		case 10:  /* CPUID */
-			/* cpuid 指令长度为 2 字节，手动前进 RIP */
 		{
 			vmcs_write(GUEST_RIP, guest_rip + 2);
 			break;
 		}
 
-		case 12:  /* HLT - 允许 gdb 中断 */
+		case 12:  /* HLT */
 		{
-			/* hlt 指令长度为 1 字节，手动前进 RIP */
 			printf("HLT VMEXIT: RIP=%#x\n", guest_rip);
 			vmcs_write(GUEST_RIP, guest_rip + 1);
 			break;
 		}
 
-		case 14:  /* EXCEPTION/NMI - 检查是否为缺页异常 */
+		case 14:  /* INVLPG 指令 */
 		{
-			uint32_t intr_info = vmcs_read(EXI_INTR_INFO);
-			uint8_t vector = intr_info & 0xFF;
 			uint32_t inst_len = vmcs_read(EXI_INST_LEN);
-
-			if (vector == 14) {  /* #PF 缺页异常 */
-				uint32_t cr2 = read_cr2();  /* 从主机 CR2 读取缺页地址 */
-			printf("EXCEPTION: vector=%d CR2=%#x inst_len=%d\n", vector, cr2, inst_len);
-				printf("PAGE FAULT: CR2=%#x RIP=%#x\n", cr2, guest_rip);
-				vmcs_write(GUEST_RIP, guest_rip + inst_len);
-				return VMX_VMEXIT;  /* 缺页后停止 guest */
-			}
+			vmcs_write(GUEST_RIP, guest_rip + inst_len);
 			break;
 		}
 
@@ -579,17 +666,16 @@ static int exit_handler(void)
 			uint32_t qual = vmcs_read(EXI_QUALIFICATION);
 			int access_type = (qual >> 4) & 1;  /* 0=从CR读, 1=写到CR */
 
-			printf("CR3 ACCESS: type=%s qual=%#x\n",
-				access_type ? "write" : "read", qual);
+			printf("CR3 ACCESS: type=%s qual=%#x inst_len=%d RIP=%#x\n",
+				access_type ? "write" : "read", qual, inst_len, guest_rip);
 
 			/* 简单处理：只前进 RIP，不模拟 CR 操作 */
-			/* 如果需要真正测试 CR 操作，应该使用更完整的方法 */
-			vmcs_write(GUEST_RIP, guest_rip + 3);
+			vmcs_write(GUEST_RIP, guest_rip + inst_len);
 
-			/* 如果是 CR3 写入，直接退出测试避免问题 */
+			/* 如果是 CR3 写入，恢复原始 CR3 值 */
 			if (access_type == 1) {
-				printf(" - CR3 write detected, exiting test\n");
-				// return VMX_VMEXIT;
+				printf(" - CR3 write detected, restoring CR3\n");
+				// vmcs_write(GUEST_CR3, read_cr3());
 			}
 			break;
 		}

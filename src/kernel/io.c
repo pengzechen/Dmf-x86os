@@ -91,6 +91,6 @@ void puts(const char *s)
 {
 	spin_lock(&lock);
 	print_serial(s);
-	// sys_show((char *)s, 0x02);  /* BIOS int 10h - 只在图形模式工作 */
+	sys_show((char *)s, 0x02);  /* BIOS int 10h - 只在图形模式工作 */
 	spin_unlock(&lock);
 }
