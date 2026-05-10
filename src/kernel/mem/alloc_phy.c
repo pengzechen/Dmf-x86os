@@ -30,12 +30,12 @@ void phys_alloc_show(void)
 	int i;
 
 	spin_lock(&lock);
-	printf("phys_alloc minimum alignment: %x", (uint32_t)early_alloc_ops.align_min);
+	printf("\nphys_alloc minimum alignment: %x\n", (uint32_t)early_alloc_ops.align_min);
 	
     for (i = 0; i < nr_regions; ++i)
-		printf("%016" PRIx32 "-%016" PRIx32 " [%s]", (uint32_t)regions[i].base, (uint32_t)(regions[i].base + regions[i].size - 1), "USED");
+		printf("%016" PRIx32 "-%016" PRIx32 " [%s]\n", (uint32_t)regions[i].base, (uint32_t)(regions[i].base + regions[i].size - 1), "USED");
 	
-    printf("%016" PRIx32 "-%016" PRIx32 " [%s]", (uint32_t)base, (uint32_t)(top - 1), "FREE");
+    printf("%016" PRIx32 "-%016" PRIx32 " [%s]\n", (uint32_t)base, (uint32_t)(top - 1), "FREE");
 	spin_unlock(&lock);
 }
 
