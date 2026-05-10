@@ -55,11 +55,6 @@
                     "text": "add-symbol-file ./build/kernel/kernel.elf 0x100000",
                     "ignoreFailures": false
                 },
-                {
-                    "description": "运行至0x7c00",
-                    "text": "-exec-until *0x7c00",
-                    "ignoreFailures": false
-                },
             ],
         }
     ]

@@ -447,13 +447,16 @@ void vmcs_init () {
 
 	/* All settings to pin/exit/enter/cpu
 	   control fields should be placed here */
-	ctrl_pin |= PIN_EXTINT | PIN_NMI | PIN_VIRT_NMI;
+	/* 屏蔽中断 - 不设置 PIN_EXTINT，外部中断不会触发 VM-exit */
+	ctrl_pin |= PIN_NMI | PIN_VIRT_NMI;
 	ctrl_exit = EXI_LOAD_EFER | EXI_HOST_64;
 	ctrl_enter = (ENT_LOAD_EFER | ENT_GUEST_64);
 	/* DIsable IO instruction VMEXIT now */
 	ctrl_cpu[0] &= (~(CPU_IO | CPU_IO_BITMAP));
 	/* 启用 CR3 访问的 VM exit，用于测试 */
 	ctrl_cpu[0] |= CPU_CR3_LOAD | CPU_CR3_STORE;
+	/* 启用 HLT VM-exit，允许 gdb 中断 */
+	ctrl_cpu[0] |= CPU_HLT;
 	ctrl_cpu[1] = 0;
 
 	ctrl_pin = (ctrl_pin | ctrl_pin_rev.set) & ctrl_pin_rev.clr;
@@ -572,22 +575,36 @@ static int exit_handler(void)
 	uint64_t guest_rip = vmcs_read(GUEST_RIP);
 
 	regs.eflags = vmcs_read(GUEST_RFLAGS);
+	// print_vmexit_info();
+
 
 	if (is_hypercall()) {
 		/* VMCALL 指令长度为 3 字节，手动前进 RIP */
 		vmcs_write(GUEST_RIP, guest_rip + 3);
 		ret = handle_hypercall();
 	} else {
-		// print_vmexit_info();
 
 		/* 处理需要特殊指令的 VM exit */
 		switch (reason) {
+		case 1:   /* EXTERNAL INTERRUPT */
+		{
+			// printf("EXTERNAL INTERRUPT VMEXIT");
+			// return VMX_VMEXIT;
+			break;
+		}
 		case 10:  /* CPUID */
 			/* cpuid 指令长度为 2 字节，手动前进 RIP */
 		{
 			vmcs_write(GUEST_RIP, guest_rip + 2);
 			break;
 		}
+
+			case 12:  /* HLT - 允许 gdb 中断 */
+			{
+			/* hlt 指令长度为 1 字节，手动前进 RIP */
+			vmcs_write(GUEST_RIP, guest_rip + 1);
+			break;
+			}
 
 		case 14:  /* EXCEPTION/NMI - 检查是否为缺页异常 */
 		{

@@ -48,22 +48,11 @@ guest_entry:
     mov $1, %edi
     call hypercall
 
-    # 如果执行到这里，停止
+    # 如果执行到这里，停止（hlt 会 VM-exit，允许 gdb 中断）
     hlt
     jmp .
 
 
 
 
-.global vmx_return1
-
-vmx_return1:
-
-    xchg %eax, regs+0x00
-    xchg %ebx, regs+0x04
-    xchg %ecx, regs+0x08
-    xchg %edx, regs+0x0c
-    xchg %ebp, regs+0x10
-    xchg %esi, regs+0x14
-    xchg %edi, regs+0x18
     

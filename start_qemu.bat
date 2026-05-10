@@ -1,1 +1,1 @@
-start qemu-system-i386  -m 128M -s -S -serial stdio -drive file=build/disk.img,index=0,media=disk,format=raw -d pcall,page,mmu,cpu_reset,guest_errors,page,trace:ps2_keyboard_set_translation
+sudo qemu-system-i386 -m 128 -drive file=build/disk.img,format=raw -serial stdio -enable-kvm -cpu host -s -S
