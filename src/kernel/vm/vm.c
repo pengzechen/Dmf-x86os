@@ -599,12 +599,13 @@ static int exit_handler(void)
 			break;
 		}
 
-			case 12:  /* HLT - 允许 gdb 中断 */
-			{
+		case 12:  /* HLT - 允许 gdb 中断 */
+		{
 			/* hlt 指令长度为 1 字节，手动前进 RIP */
+			printf("HLT VMEXIT: RIP=%#x", guest_rip);
 			vmcs_write(GUEST_RIP, guest_rip + 1);
 			break;
-			}
+		}
 
 		case 14:  /* EXCEPTION/NMI - 检查是否为缺页异常 */
 		{
@@ -639,7 +640,7 @@ static int exit_handler(void)
 			/* 如果是 CR3 写入，直接退出测试避免问题 */
 			if (access_type == 1) {
 				printf(" - CR3 write detected, exiting test");
-				return VMX_VMEXIT;
+				// return VMX_VMEXIT;
 			}
 			break;
 		}
@@ -733,7 +734,7 @@ static int vmx_run(void)
 		bool entered;
 		struct vmentry_failure failure;
 
-		printf("Guest in ...");
+		printf("Guest in <<<");
 		entered = vmx_enter_guest(&failure);
 
 		if (entered) {

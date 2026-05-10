@@ -43,13 +43,14 @@ guest_entry:
     mov $0x111000, %eax   # 读取当前 CR3 到 EAX
     mov %cr3, %ebx        # 触发 CR3_STORE VM exit
     mov %eax, %cr3        # 触发 CR3_LOAD VM exit
+    
+    # 测试5: 触发 HLT 指令，应该 VM-exit (reason 12)
+    hlt
 
-    # 测试5: 第二次 hypercall - VMEXIT (1)，正常退出
+    # 测试6: hyper call = 1正常退出
     mov $1, %edi
     call hypercall
 
-    # 如果执行到这里，停止（hlt 会 VM-exit，允许 gdb 中断）
-    hlt
     jmp .
 
 
